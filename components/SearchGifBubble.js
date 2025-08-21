@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   bubble: {
-    backgroundColor: '#333333',
+    backgroundColor: '#faf8f8ff',
     borderRadius: 20,
     padding: 10,
     maxWidth: '70%',

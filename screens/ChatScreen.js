@@ -1,55 +1,101 @@
 // screens/ChatScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// FIX: Import CommonActions to handle navigation correctly
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { sendMessage } from '../services/gemini.js';
 import MessageBubble from '../components/MessageBubble';
 import InputBar from '../components/InputBar';
 import ThinkingBubble from '../components/ThinkingBubble';
-import SearchGifBubble from '../components/SearchGifBubble.js'; // Import the new component
+import SearchGifBubble from '../components/SearchGifBubble.js';
 import GlassmorphicHeader from '../components/GlassmorphicHeader.js';
 
 const ChatScreen = ({ route }) => {
+  const navigation = useNavigation();
   const { consultantType } = route.params;
+  const [userName, setUserName] = useState('');
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [thinkingStage, setThinkingStage] = useState(0); // 0: idle, 1: gif, 2: bubble
+  const [thinkingStage, setThinkingStage] = useState(0);
   const flatListRef = useRef(null);
   const loadingTimerRef = useRef(null);
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userDataString = await AsyncStorage.getItem('@user_data');
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          setUserName(userData.name);
+        }
+      } catch (e) {
+        console.error("Failed to load user data from storage.", e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
     setMessages([
       {
         id: '1',
-        text: `Hello! I am your ${consultantType}. How can I assist you today?`,
+        text: `${greeting} I am your ${consultantType}. How can I assist you today?`,
         sender: 'bot',
       },
     ]);
-  }, [consultantType]);
+  }, [consultantType, userName]);
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "OK",
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('@user_data');
+              navigation.replace('Login');
+            } catch (e) {
+              Alert.alert("Error", "Could not logout. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleProfile = () => {
+    // FIX: Use CommonActions.navigate to bubble up to the parent navigator
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: 'Profile',
+      })
+    );
+  };
 
   const handleSend = async () => {
     if (input.trim().length === 0) return;
-
     const userMessage = { id: Date.now().toString(), text: input, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    setThinkingStage(1); // Start with GIF animation
+    setThinkingStage(1);
 
-    // Set a timer to switch to the thinking bubble after 2 seconds
-    loadingTimerRef.current = setTimeout(() => {
-      setThinkingStage(2);
-    }, 2000);
+    loadingTimerRef.current = setTimeout(() => setThinkingStage(2), 2000);
 
     try {
-      const response = await sendMessage(input);
+      const response = await sendMessage(input, userName);
       const botMessage = { id: Date.now().toString() + 'bot', text: response, sender: 'bot' };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      const errorMessage = { id: Date.now().toString() + 'err', text: "Sorry, I'm having trouble connecting. Please try again later.", sender: 'bot' };
+      const errorMessage = { id: Date.now().toString() + 'err', text: "Sorry, I'm having trouble connecting.", sender: 'bot' };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      // Clear the timer and reset loading states
       clearTimeout(loadingTimerRef.current);
       setIsLoading(false);
       setThinkingStage(0);
@@ -63,18 +109,18 @@ const ChatScreen = ({ route }) => {
   }, [messages]);
 
   const renderThinkingItem = () => {
-    if (thinkingStage === 1) {
-      return <SearchGifBubble />;
-    }
-    if (thinkingStage === 2) {
-      return <ThinkingBubble />;
-    }
+    if (thinkingStage === 1) return <SearchGifBubble />;
+    if (thinkingStage === 2) return <ThinkingBubble />;
     return null;
   };
 
   return (
     <View style={styles.container}>
-      <GlassmorphicHeader title={consultantType} />
+      <GlassmorphicHeader
+        title={consultantType}
+        onProfilePress={handleProfile}
+        onLogoutPress={handleLogout}
+      />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
@@ -83,11 +129,7 @@ const ChatScreen = ({ route }) => {
           ref={flatListRef}
           data={[...messages, ...(isLoading ? [{ id: 'thinking' }] : [])]}
           renderItem={({ item }) =>
-            item.id === 'thinking' ? (
-              renderThinkingItem()
-            ) : (
-              <MessageBubble message={item} />
-            )
+            item.id === 'thinking' ? renderThinkingItem() : <MessageBubble message={item} />
           }
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
@@ -104,18 +146,9 @@ const ChatScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0C0C0C',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  messageList: {
-    paddingHorizontal: 10,
-    paddingTop: 120,
-    paddingBottom: 20,
-  },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  keyboardAvoidingView: { flex: 1 },
+  messageList: { paddingHorizontal: 10, paddingTop: 120, paddingBottom: 20 },
 });
 
 export default ChatScreen;
