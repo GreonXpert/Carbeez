@@ -12,6 +12,7 @@ import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import MainTabNavigator from './navigation/MainTabNavigator';
+import ProfileScreen from './screens/ProfileScreen'; // FIX 1: Import the Profile screen
 
 const Stack = createStackNavigator();
 
@@ -19,7 +20,6 @@ export default function App() {
   const [fontsLoaded, fontError] = useFonts({
     'Inter_900Black': require('./assets/fonts/Inter_18pt-Black.ttf'),
     'Inter_400Regular': require('./assets/fonts/Inter_18pt-Regular.ttf'),
-    // FIX: Corrected the path from './assets-fonts/' to './assets/fonts/'
     'Inter_700Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
     'Inter_600SemiBold': require('./assets/fonts/Inter_18pt-SemiBold.ttf'),
   });
@@ -61,6 +61,8 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="MainApp" component={MainTabNavigator} />
+        {/* FIX 2: Add the Profile screen to the navigator */}
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
