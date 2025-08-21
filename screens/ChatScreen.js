@@ -5,6 +5,7 @@ import { sendMessage } from '../services/gemini.js';
 import MessageBubble from '../components/MessageBubble';
 import InputBar from '../components/InputBar';
 import ThinkingBubble from '../components/ThinkingBubble';
+import SearchGifBubble from '../components/SearchGifBubble.js'; // Import the new component
 import GlassmorphicHeader from '../components/GlassmorphicHeader.js';
 
 const ChatScreen = ({ route }) => {
@@ -12,10 +13,11 @@ const ChatScreen = ({ route }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [thinkingStage, setThinkingStage] = useState(0); // 0: idle, 1: gif, 2: bubble
   const flatListRef = useRef(null);
+  const loadingTimerRef = useRef(null);
 
   useEffect(() => {
-    // Corrected initial message format with "sender"
     setMessages([
       {
         id: '1',
@@ -25,27 +27,32 @@ const ChatScreen = ({ route }) => {
     ]);
   }, [consultantType]);
 
-
   const handleSend = async () => {
     if (input.trim().length === 0) return;
 
-    // Corrected user message format with "sender"
     const userMessage = { id: Date.now().toString(), text: input, sender: 'user' };
     setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
     setInput('');
+    setIsLoading(true);
+    setThinkingStage(1); // Start with GIF animation
+
+    // Set a timer to switch to the thinking bubble after 2 seconds
+    loadingTimerRef.current = setTimeout(() => {
+      setThinkingStage(2);
+    }, 2000);
 
     try {
       const response = await sendMessage(input);
-      // Corrected bot message format with "sender"
       const botMessage = { id: Date.now().toString() + 'bot', text: response, sender: 'bot' };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      // Corrected error message format with "sender"
       const errorMessage = { id: Date.now().toString() + 'err', text: "Sorry, I'm having trouble connecting. Please try again later.", sender: 'bot' };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
+      // Clear the timer and reset loading states
+      clearTimeout(loadingTimerRef.current);
       setIsLoading(false);
+      setThinkingStage(0);
     }
   };
 
@@ -55,22 +62,30 @@ const ChatScreen = ({ route }) => {
     }
   }, [messages]);
 
+  const renderThinkingItem = () => {
+    if (thinkingStage === 1) {
+      return <SearchGifBubble />;
+    }
+    if (thinkingStage === 2) {
+      return <ThinkingBubble />;
+    }
+    return null;
+  };
+
   return (
     <View style={styles.container}>
-       <GlassmorphicHeader title={consultantType} />
+      <GlassmorphicHeader title={consultantType} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}
-        >
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}>
         <FlatList
           ref={flatListRef}
           data={[...messages, ...(isLoading ? [{ id: 'thinking' }] : [])]}
           renderItem={({ item }) =>
             item.id === 'thinking' ? (
-              <ThinkingBubble />
+              renderThinkingItem()
             ) : (
-              // Correctly pass the "message" prop as a single object
               <MessageBubble message={item} />
             )
           }
@@ -91,7 +106,7 @@ const ChatScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fefefe',
+    backgroundColor: '#0C0C0C',
   },
   keyboardAvoidingView: {
     flex: 1,

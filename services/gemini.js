@@ -108,6 +108,22 @@ I’m your AI Carbon Consultant. I help with **GHG inventories** (Scopes **1, 2,
 - Consolidation Approach (e.g., operational control)
 - Sites/facilities & Sector
 - Preferred GWP set (e.g., IPCC AR5/AR6)`;
+
 }
+/**
+ * Checks user input and returns an appropriate response.
+ * - If the input is small talk, returns a canned response.
+ * - Otherwise, gets a response from the Gemini model.
+ */
+export async function sendMessage(userInput) {
+  if (isSmallTalk(userInput)) {
+    return smallTalkResponse();
+  }
+  // The Gemini model itself is instructed by the system prompt
+  // to only answer GHG-related questions.
+  return getGeminiResponse(userInput);
+}
+
+
 
 export default getGeminiResponse;

@@ -1,106 +1,124 @@
-// --------------------------------------------------
 // components/MessageBubble.js
-// --------------------------------------------------
-import React, { useState } from 'react';
-import { TouchableOpacity, View } from 'react-native';
-import styled from 'styled-components/native';
-import Markdown from 'react-native-markdown-display';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Clipboard } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import Markdown from 'react-native-markdown-display';
 
-const BubbleContainer = styled.View`
-  position: relative;
-`;
+const MessageBubble = ({ message }) => {
+  if (!message || !message.text) {
+    // Return null or a placeholder if the message is not valid
+    return null;
+  }
 
-const Bubble = styled.View`
-  padding: 16px 20px;
-  border-radius: 20px;
-  background-color: ${(props) => (props.sender === 'user' ? '#0EA5A3' : '#FFFFFF')};
-  margin-bottom: 8px;
-  max-width: 100%;
-  elevation: 1;
-  shadow-color: #000;
-  shadow-offset: 0px 1px;
-  shadow-opacity: 0.05;
-  shadow-radius: 2px;
-`;
+  const isUser = message.sender === 'user';
+  // FIX: Provide a default empty array for chunks to prevent the 'map' error
+  const chunks = message.text.split(/(`{3}[\s\S]*?`{3})/g) || [];
 
-const TimestampContainer = styled.View`
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 8px;
-`;
+  const onShare = async () => {
+    try {
+      await Share.share({
+        message: message.text,
+      });
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
-const TimestampText = styled.Text`
-  font-size: 12px;
-  color: ${(props) => (props.sender === 'user' ? 'rgba(255, 255, 255, 0.8)' : '#94a3b8')};
-`;
-
-const EditedText = styled.Text`
-  font-size: 12px;
-  font-style: italic;
-  margin-right: 4px;
-  color: ${(props) => (props.sender === 'user' ? 'rgba(255, 255, 255, 0.8)' : '#94a3b8')};
-`;
-
-
-const ActionButtonContainer = styled.View`
-  position: absolute;
-  top: -12px;
-  right: 10px;
-  flex-direction: row;
-  background-color: white;
-  border-radius: 16px;
-  padding: 4px;
-  elevation: 4;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.15;
-  shadow-radius: 5px;
-`;
-
-const ActionButton = styled.TouchableOpacity`
-  padding: 6px;
-  margin: 0 4px;
-`;
-
-const MessageBubble = ({ message, onCopy, onEdit }) => {
-  const { sender, text, timestamp, edited } = message;
-  const [showActions, setShowActions] = useState(false);
+  const onCopy = () => {
+    Clipboard.setString(message.text);
+    // Optional: show a toast or feedback to the user
+  };
 
   return (
-    <TouchableOpacity onLongPress={() => setShowActions(true)} onPressOut={() => setShowActions(false)} activeOpacity={0.8}>
-      <BubbleContainer>
-        <Bubble sender={sender}>
-          <Markdown style={{
-            body: { color: sender === 'user' ? '#FFFFFF' : '#1e293b', fontSize: 16, fontFamily: 'Inter-Regular' },
-            heading1: { color: sender === 'user' ? 'white' : '#0EA5A3', fontFamily: 'Inter-Bold' },
-            strong: { fontFamily: 'Inter-Bold' },
-          }}>
-            {text}
-          </Markdown>
-          <TimestampContainer>
-            {edited && <EditedText sender={sender}>(edited)</EditedText>}
-            <TimestampText sender={sender}>
-              {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </TimestampText>
-          </TimestampContainer>
-        </Bubble>
-        {showActions && (
-          <ActionButtonContainer>
-            <ActionButton onPress={onCopy}>
-              <MaterialIcons name="content-copy" size={20} color="#475569" />
-            </ActionButton>
-            {sender === 'user' && (
-              <ActionButton onPress={onEdit}>
-                <MaterialIcons name="edit" size={20} color="#475569" />
-              </ActionButton>
-            )}
-          </ActionButtonContainer>
-        )}
-      </BubbleContainer>
-    </TouchableOpacity>
+    <View style={isUser ? styles.userMessageContainer : styles.botMessageContainer}>
+      <View style={[styles.bubble, isUser ? styles.userBubble : styles.botBubble]}>
+        <Markdown style={markdownStyles}>
+          {message.text}
+        </Markdown>
+      </View>
+      {!isUser && (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity onPress={onCopy} style={styles.button}>
+            <MaterialIcons name="content-copy" size={18} color="#9e9e9e" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onShare} style={styles.button}>
+            <MaterialIcons name="share" size={18} color="#9e9e9e" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
   );
 };
+
+// ... (keep the rest of your styles unchanged)
+const markdownStyles = {
+  heading1: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  body: {
+    color: '#E0E0E0',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 15,
+  },
+  strong: {
+    fontFamily: 'Inter_700Bold',
+  },
+  list_item: {
+    color: '#E0E0E0',
+    marginBottom: 8,
+  },
+  code_inline: {
+    backgroundColor: '#2E2E2E',
+    color: '#A5D6A7',
+    fontFamily: 'monospace',
+  },
+  code_block: {
+    backgroundColor: '#1E1E1E',
+    color: '#A5D6A7',
+    padding: 10,
+    borderRadius: 8,
+    fontFamily: 'monospace',
+  },
+  link: {
+    color: '#81C784',
+  },
+};
+
+const styles = StyleSheet.create({
+  userMessageContainer: {
+    alignItems: 'flex-end',
+    marginVertical: 4,
+  },
+  botMessageContainer: {
+    alignItems: 'flex-start',
+    marginVertical: 4,
+  },
+  bubble: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    maxWidth: '85%',
+  },
+  userBubble: {
+    backgroundColor: '#333333',
+    borderBottomRightRadius: 5,
+  },
+  botBubble: {
+    backgroundColor: '#1E1E1E',
+    borderBottomLeftRadius: 5,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginLeft: 10,
+  },
+  button: {
+    marginRight: 12,
+    padding: 4,
+  },
+});
 
 export default MessageBubble;
