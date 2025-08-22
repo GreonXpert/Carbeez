@@ -1,11 +1,25 @@
 // components/MessageBubble.js
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Share, Clipboard } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { 
+  View, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Share, 
+  Alert,
+  Animated,
+  Dimensions
+} from 'react-native';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
+
+const { width } = Dimensions.get('window');
 
 const MessageBubble = ({ message }) => {
+  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
+
   if (!message || !message.text) {
     return null;
   }
@@ -14,33 +28,64 @@ const MessageBubble = ({ message }) => {
 
   const onShare = async () => {
     try {
-      await Share.share({ message: message.text });
+      await Share.share({ 
+        message: message.text,
+        title: 'Shared from Carbeez AI'
+      });
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
     } catch (error) {
-      alert(error.message);
+      Alert.alert('Share Error', error.message);
     }
   };
 
-  const onCopy = () => {
-    Clipboard.setString(message.text);
+  const onCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(message.text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      Alert.alert('Copy Error', 'Failed to copy text');
+    }
+  };
+
+  const onSave = () => {
+    // You can implement save to favorites/bookmarks functionality here
+    Alert.alert('Saved', 'Message saved to your bookmarks');
   };
 
   return (
     <View style={isUser ? styles.userMessageContainer : styles.botMessageContainer}>
       {isUser ? (
-        <LinearGradient
-          colors={['#004d40', '#00695c', '#004d40']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.bubble, styles.userBubble]}
-        >
-          <View style={styles.userTextContainer}>
-            <Markdown style={userMarkdownStyles}>{message.text}</Markdown>
-          </View>
-        </LinearGradient>
-      ) : (
-        <View style={styles.botBubbleContainer}>
+        <View style={styles.userWrapper}>
           <LinearGradient
-            colors={['#ffffff', '#f8f9fa', '#ffffff']}
+            colors={['#00D1B2', '#00a27a', '#008a66']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.bubble, styles.userBubble]}
+          >
+            <View style={styles.userTextContainer}>
+              <Markdown style={userMarkdownStyles}>{message.text}</Markdown>
+            </View>
+            {/* Glassmorphic overlay */}
+            <View style={styles.userGlassOverlay} />
+          </LinearGradient>
+          
+          {/* User message actions - minimal */}
+          <View style={styles.userActions}>
+            <TouchableOpacity onPress={onCopy} style={styles.userActionBtn}>
+              <Feather 
+                name={copied ? "check" : "copy"} 
+                size={14} 
+                color={copied ? "#4ade80" : "rgba(255,255,255,0.7)"} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.botWrapper}>
+          <LinearGradient
+            colors={['#ffffff', '#fafafa', '#f8fafc']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.bubble, styles.botBubble]}
@@ -48,22 +93,45 @@ const MessageBubble = ({ message }) => {
             <View style={styles.botTextContainer}>
               <Markdown style={botMarkdownStyles}>{message.text}</Markdown>
             </View>
+            
+            {/* Subtle border accent */}
+            <View style={styles.botAccentBorder} />
           </LinearGradient>
+          
+          {/* Enhanced action buttons */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={onCopy} style={styles.button}>
+            <TouchableOpacity onPress={onCopy} style={styles.actionButton}>
               <LinearGradient
-                colors={['#e8f5e8', '#f0f9ff']}
+                colors={copied ? ['#dcfce7', '#f0fdf4'] : ['#f0fdfa', '#ecfdf5']}
                 style={styles.buttonGradient}
               >
-                <MaterialIcons name="content-copy" size={20} color="#059669" />
+                <Feather 
+                  name={copied ? "check" : "copy"} 
+                  size={18} 
+                  color={copied ? "#059669" : "#00D1B2"} 
+                />
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={onShare} style={styles.button}>
+            
+            <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <LinearGradient
-                colors={['#e8f5e8', '#f0f9ff']}
+                colors={shared ? ['#dbeafe', '#eff6ff'] : ['#f0f9ff', '#e0f2fe']}
                 style={styles.buttonGradient}
               >
-                <MaterialIcons name="share" size={20} color="#059669" />
+                <Feather 
+                  name={shared ? "check" : "share-2"} 
+                  size={18} 
+                  color={shared ? "#2563eb" : "#00a27a"} 
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+            
+            <TouchableOpacity onPress={onSave} style={styles.actionButton}>
+              <LinearGradient
+                colors={['#fef3c7', '#fef7cd']}
+                style={styles.buttonGradient}
+              >
+                <Feather name="bookmark" size={18} color="#d97706" />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -77,77 +145,94 @@ const MessageBubble = ({ message }) => {
 const userMarkdownStyles = {
   body: {
     color: '#ffffff',
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'System',
     fontSize: 16,
     lineHeight: 24,
+    fontWeight: '500',
   },
   heading1: {
     color: '#ffffff',
-    fontFamily: 'Inter_800ExtraBold',
-    fontSize: 24,
-    marginBottom: 12,
+    fontFamily: 'System',
+    fontWeight: '800',
+    fontSize: 26,
+    marginBottom: 14,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 3,
   },
   heading2: {
     color: '#ffffff',
-    fontFamily: 'Inter_700Bold',
-    fontSize: 20,
-    marginBottom: 10,
+    fontFamily: 'System',
+    fontWeight: '700',
+    fontSize: 22,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0,0,0,0.2)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   heading3: {
     color: '#ffffff',
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    marginBottom: 8,
+    fontFamily: 'System',
+    fontWeight: '600',
+    fontSize: 19,
+    marginBottom: 10,
   },
   strong: {
-    fontFamily: 'Inter_700Bold',
-    color: '#b2dfdb',
+    fontFamily: 'System',
+    fontWeight: '700',
+    color: '#e0f9f5',
   },
   em: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'System',
     fontStyle: 'italic',
-    color: '#e0f2f1',
+    color: '#ccfbf1',
+    fontWeight: '400',
   },
   list_item: {
     color: '#ffffff',
-    marginBottom: 6,
+    marginBottom: 8,
     fontSize: 16,
+    lineHeight: 22,
   },
   code_inline: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: '#e0f2f1',
-    fontFamily: 'monospace',
-    fontSize: 14,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    color: '#f0fdfa',
+    fontFamily: 'Courier',
+    fontSize: 15,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    fontWeight: '600',
   },
   code_block: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     color: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
-    fontFamily: 'monospace',
+    padding: 18,
+    borderRadius: 14,
+    fontFamily: 'Courier',
     fontSize: 14,
-    marginVertical: 8,
+    marginVertical: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#b2dfdb',
+    borderLeftColor: '#e0f9f5',
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   link: {
-    color: '#a7ffeb',
+    color: '#a7f3d0',
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
   blockquote: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderLeftWidth: 4,
-    borderLeftColor: '#26a69a',
-    paddingLeft: 16,
-    paddingVertical: 8,
-    marginVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderLeftWidth: 5,
+    borderLeftColor: '#6ee7b7',
+    paddingLeft: 18,
+    paddingVertical: 12,
+    marginVertical: 10,
+    borderRadius: 10,
     fontStyle: 'italic',
   },
 };
@@ -156,171 +241,233 @@ const userMarkdownStyles = {
 const botMarkdownStyles = {
   body: {
     color: '#1f2937',
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'System',
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 25,
+    fontWeight: '400',
   },
   heading1: {
-    color: '#004d40',
-    fontFamily: 'Inter_800ExtraBold',
-    fontSize: 24,
-    marginBottom: 12,
-    textShadowColor: 'rgba(0,77,64,0.1)',
+    color: '#00D1B2',
+    fontFamily: 'System',
+    fontWeight: '800',
+    fontSize: 26,
+    marginBottom: 14,
+    textShadowColor: 'rgba(0,209,178,0.1)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowRadius: 3,
   },
   heading2: {
-    color: '#00695c',
-    fontFamily: 'Inter_700Bold',
-    fontSize: 20,
-    marginBottom: 10,
+    color: '#00a27a',
+    fontFamily: 'System',
+    fontWeight: '700',
+    fontSize: 22,
+    marginBottom: 12,
   },
   heading3: {
-    color: '#00796b',
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 18,
-    marginBottom: 8,
+    color: '#008a66',
+    fontFamily: 'System',
+    fontWeight: '600',
+    fontSize: 19,
+    marginBottom: 10,
   },
   strong: {
-    fontFamily: 'Inter_700Bold',
-    color: '#004d40',
+    fontFamily: 'System',
+    fontWeight: '700',
+    color: '#00D1B2',
   },
   em: {
-    fontFamily: 'Inter_400Regular',
+    fontFamily: 'System',
     fontStyle: 'italic',
-    color: '#455a64',
+    color: '#4b5563',
+    fontWeight: '400',
   },
   list_item: {
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 10,
     fontSize: 16,
-    paddingLeft: 4,
+    paddingLeft: 6,
+    lineHeight: 22,
   },
   code_inline: {
-    backgroundColor: '#e8f5e8',
-    color: '#059669',
-    fontFamily: 'monospace',
-    fontSize: 14,
-    paddingHorizontal: 8,
+    backgroundColor: '#f0fdfa',
+    color: '#00D1B2',
+    fontFamily: 'Courier',
+    fontSize: 15,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
     fontWeight: '600',
+    borderWidth: 1,
+    borderColor: '#ccfbf1',
   },
   code_block: {
-    backgroundColor: '#f0fdf4',
-    color: '#047857',
-    padding: 16,
-    borderRadius: 12,
-    fontFamily: 'monospace',
+    backgroundColor: '#f8fafc',
+    color: '#00a27a',
+    padding: 20,
+    borderRadius: 16,
+    fontFamily: 'Courier',
     fontSize: 14,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#d1fae5',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
+    marginVertical: 12,
+    borderWidth: 2,
+    borderColor: '#e0f9f5',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   link: {
-    color: '#059669',
+    color: '#00D1B2',
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
   blockquote: {
     backgroundColor: '#f0fdfa',
-    borderLeftWidth: 4,
-    borderLeftColor: '#14b8a6',
-    paddingLeft: 16,
-    paddingVertical: 12,
-    marginVertical: 10,
-    borderRadius: 8,
+    borderLeftWidth: 5,
+    borderLeftColor: '#00D1B2',
+    paddingLeft: 20,
+    paddingVertical: 15,
+    marginVertical: 12,
+    borderRadius: 12,
     fontStyle: 'italic',
-    color: '#0f766e',
+    color: '#00796b',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   table: {
-    borderWidth: 1,
-    borderColor: '#d1fae5',
-    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e0f9f5',
+    borderRadius: 12,
     overflow: 'hidden',
-    marginVertical: 10,
+    marginVertical: 12,
+    backgroundColor: '#ffffff',
   },
   th: {
-    backgroundColor: '#dcfce7',
-    color: '#047857',
-    fontFamily: 'Inter_600SemiBold',
-    padding: 12,
+    backgroundColor: '#f0fdfa',
+    color: '#00D1B2',
+    fontFamily: 'System',
+    fontWeight: '700',
+    padding: 14,
+    fontSize: 15,
   },
   td: {
-    padding: 10,
+    padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0fdf4',
+    borderBottomColor: '#f0fdfa',
     color: '#374151',
+    fontSize: 15,
   },
 };
 
 const styles = StyleSheet.create({
   userMessageContainer: {
     alignItems: 'flex-end',
-    marginVertical: 8,
-    paddingHorizontal: 16,
+    marginVertical: 10,
+    paddingHorizontal: 18,
   },
   botMessageContainer: {
     alignItems: 'flex-start',
-    marginVertical: 8,
-    paddingHorizontal: 16,
+    marginVertical: 10,
+    paddingHorizontal: 18,
+  },
+  userWrapper: {
+    alignItems: 'flex-end',
+    maxWidth: '85%',
+  },
+  botWrapper: {
+    alignItems: 'flex-start',
+    maxWidth: '90%',
   },
   bubble: {
     borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    maxWidth: '88%',
-    minWidth: '20%',
-    shadowOffset: { width: 0, height: 4 },
+    paddingHorizontal: 22,
+    paddingVertical: 18,
+    minWidth: '25%',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowRadius: 12,
+    elevation: 8,
+    position: 'relative',
   },
   userBubble: {
     borderBottomRightRadius: 8,
-    shadowColor: '#004d4094',
-  },
-  botBubbleContainer: {
-    alignItems: 'flex-start',
+    shadowColor: '#00D1B2',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   botBubble: {
     borderBottomLeftRadius: 8,
-    shadowColor: '#059669',
-    borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.1)',
+    shadowColor: '#00D1B2',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 209, 178, 0.1)',
   },
   userTextContainer: {
     position: 'relative',
+    zIndex: 2,
   },
   botTextContainer: {
     position: 'relative',
+    zIndex: 2,
+  },
+  userGlassOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 24,
+    borderBottomRightRadius: 8,
+    zIndex: 1,
+  },
+  botAccentBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 4,
+    height: '100%',
+    backgroundColor: '#00D1B2',
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 8,
+  },
+  userActions: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginRight: 4,
+  },
+  userActionBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   buttonContainer: {
     flexDirection: 'row',
-    marginTop: 12,
-    marginLeft: 12,
-    gap: 8,
+    marginTop: 14,
+    marginLeft: 8,
+    gap: 10,
   },
-  button: {
-    borderRadius: 12,
+  actionButton: {
+    borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#059669',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonGradient: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 209, 178, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 44,
+    minHeight: 44,
   },
 });
 

@@ -1,75 +1,163 @@
 // components/InputBar.js
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Platform,
-  SafeAreaView,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
 
 const InputBar = ({ value, onChangeText, onSend, isLoading }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const scaleAnim = new Animated.Value(1);
+
+  const handleSendPress = () => {
+    Animated.sequence([
+      Animated.timing(scaleAnim, {
+        toValue: 0.95,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    onSend();
+  };
+
+  const isActive = value.trim().length > 0;
+
   return (
-    // Use SafeAreaView to handle the bottom notch on iOS
-    <SafeAreaView edges={['bottom']} style={styles.safeArea}>
-      <View style={styles.container}>
-        <TextInput
-          style={styles.textInput}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder="Type your message..."
-          placeholderTextColor="#9CA3AF"
-          multiline
-        />
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={onSend}
-          disabled={isLoading || value.trim().length === 0}
-        >
-          <MaterialIcons
-            name="send"
-            size={24}
-            color={value.trim().length > 0 ? '#FFFFFF' : '#f3efefff'}
+    <View style={styles.container}>
+      {/* Main Input Container */}
+      <View style={styles.inputContainer}>
+        {/* Text Input with Glassmorphic Effect */}
+        <View style={[
+          styles.textInputWrapper,
+          isFocused && styles.textInputWrapperFocused
+        ]}>
+          <TextInput
+            style={styles.textInput}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder="Type your message..."
+            placeholderTextColor="#a0b3b8"
+            multiline
+            maxLength={2000}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
           />
-        </TouchableOpacity>
+        </View>
+
+        {/* Premium Send Button */}
+        <Animated.View 
+          style={[
+            styles.sendButtonContainer,
+            { transform: [{ scale: scaleAnim }] }
+          ]}
+        >
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              !isActive && styles.sendButtonDisabled
+            ]}
+            onPress={handleSendPress}
+            disabled={isLoading || !isActive}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={isActive ? ['#00D1B2', '#00a27a'] : ['#e5e7eb', '#d1d5db']}
+              style={styles.sendButtonGradient}
+            >
+              <MaterialIcons
+                name={isLoading ? "hourglass-empty" : "send"}
+                size={22}
+                color={isActive ? '#ffffff' : '#9ca3af'}
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-  },
   container: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 85, // FIXED: Space for floating tab bar
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  inputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    alignItems: 'flex-end',
+    gap: 12,
+  },
+  textInputWrapper: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0, 209, 178, 0.1)',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  textInputWrapperFocused: {
+    borderColor: 'rgba(0, 209, 178, 0.3)',
+    shadowOpacity: 0.12,
+    backgroundColor: '#ffffff',
   },
   textInput: {
-    flex: 1,
     minHeight: 44,
-    maxHeight: 120, // Allow for multiple lines
-    paddingHorizontal: 16,
-    paddingVertical: Platform.select({ ios: 12, android: 8 }),
-    backgroundColor: '#F3F4F6',
-    borderRadius: 22,
+    maxHeight: 120,
+    paddingHorizontal: 18,
+    paddingVertical: Platform.select({ ios: 14, android: 12 }),
     fontSize: 16,
-    color: '#111827',
+    color: '#1f2937',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  sendButtonContainer: {
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
   },
   sendButton: {
-    marginLeft: 12,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#0EA5A3',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  sendButtonDisabled: {
+    opacity: 0.6,
+  },
+  sendButtonGradient: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 24,
   },
 });
 

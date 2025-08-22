@@ -1,101 +1,104 @@
 // components/ThinkingBubble.js
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Animated, Easing, TouchableOpacity } from 'react-native';
+import { View, Animated, Easing, TouchableOpacity, Dimensions } from 'react-native';
 import styled from 'styled-components/native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import CustomLoader from './CustomLoader';
 
+const { width } = Dimensions.get('window');
+
 const defaultSteps = [
-  { icon: 'search', text: 'Analyzing request' },
-  { icon: 'rule', text: 'Applying GHG Protocol' },
-  { icon: 'checklist', text: 'Checking ISO 14064-1' },
-  { icon: 'functions', text: 'Calculating emissions' },
+  { icon: 'search', text: 'Analyzing request', color: '#00D1B2' },
+  { icon: 'eco', text: 'Applying GHG', color: '#00a27a' },
+  { icon: 'verified', text: 'Checking ISO', color: '#6366f1' },
+  { icon: 'calculate', text: 'Computing', color: '#f59e0b' },
+  { icon: 'analytics', text: 'Insights', color: '#8b5cf6' },
 ];
 
 const AnimatedChip = ({ step, delay, index, isVisible }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const translateYAnim = useRef(new Animated.Value(20)).current;
-  const backgroundColorAnim = useRef(new Animated.Value(0)).current;
-  const borderWidthAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (isVisible) {
-      // Reset values before starting animation
       scaleAnim.setValue(0);
       opacityAnim.setValue(0);
       translateYAnim.setValue(20);
       
-      // Entrance animation for the container
+      // Staggered entrance animation
       const entranceAnimation = Animated.parallel([
-        Animated.timing(scaleAnim, {
+        Animated.spring(scaleAnim, {
           toValue: 1,
-          duration: 500,
+          tension: 80,
+          friction: 6,
           delay: delay,
-          easing: Easing.back(1.2),
           useNativeDriver: true,
         }),
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 400,
           delay: delay,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(translateYAnim, {
           toValue: 0,
           duration: 500,
           delay: delay,
-          easing: Easing.out(Easing.cubic),
+          easing: Easing.bounce,
           useNativeDriver: true,
         }),
       ]);
 
-      // Background color pulse animation
-      const backgroundPulse = Animated.loop(
+      // Continuous glow animation
+      const glowAnimation = Animated.loop(
         Animated.sequence([
-          Animated.timing(backgroundColorAnim, {
+          Animated.timing(glowAnim, {
             toValue: 1,
-            duration: 1500 + (index * 300),
-            easing: Easing.inOut(Easing.ease),
+            duration: 1500 + (index * 200),
+            easing: Easing.linear,
             useNativeDriver: false,
           }),
-          Animated.timing(backgroundColorAnim, {
+          Animated.timing(glowAnim, {
             toValue: 0,
-            duration: 1500 + (index * 300),
-            easing: Easing.inOut(Easing.ease),
+            duration: 1500 + (index * 200),
+            easing: Easing.linear,
             useNativeDriver: false,
           }),
         ])
       );
 
-      // Border animation
-      const borderAnimation = Animated.loop(
+      // Subtle pulse animation
+      const pulseAnimation = Animated.loop(
         Animated.sequence([
-          Animated.timing(borderWidthAnim, {
-            toValue: 1,
-            duration: 2000 + (index * 200),
+          Animated.timing(pulseAnim, {
+            toValue: 1.03,
+            duration: 1200 + (index * 150),
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
-          Animated.timing(borderWidthAnim, {
-            toValue: 0,
-            duration: 2000 + (index * 200),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1200 + (index * 150),
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: false,
+            useNativeDriver: true,
           }),
         ])
       );
 
       entranceAnimation.start(() => {
-        backgroundPulse.start();
-        borderAnimation.start();
+        glowAnimation.start();
+        pulseAnimation.start();
       });
 
       return () => {
         entranceAnimation.stop();
-        backgroundPulse.stop();
-        borderAnimation.stop();
+        glowAnimation.stop();
+        pulseAnimation.stop();
       };
     } else {
       // Exit animation
@@ -103,12 +106,12 @@ const AnimatedChip = ({ step, delay, index, isVisible }) => {
         Animated.timing(scaleAnim, {
           toValue: 0,
           duration: 300,
-          easing: Easing.in(Easing.cubic),
+          easing: Easing.in(Easing.ease),
           useNativeDriver: true,
         }),
         Animated.timing(opacityAnim, {
           toValue: 0,
-          duration: 300,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(translateYAnim, {
@@ -120,120 +123,165 @@ const AnimatedChip = ({ step, delay, index, isVisible }) => {
     }
   }, [isVisible, delay, index]);
 
-  const backgroundColorInterpolate = backgroundColorAnim.interpolate({
+  const glowOpacity = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['#e0f2f1', '#f0fdfa'],
+    outputRange: [0.05, 0.2],
   });
 
-  const borderWidthInterpolate = borderWidthAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 3],
-  });
-
-  const borderColorInterpolate = backgroundColorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(5, 150, 105, 0.2)', 'rgba(5, 150, 105, 0.6)'],
-  });
-
-  // Always render the component, but control visibility with opacity and scale
   return (
     <Animated.View
       style={{
         transform: [
-          { scale: scaleAnim },
+          { scale: Animated.multiply(scaleAnim, pulseAnim) },
           { translateY: translateYAnim },
         ],
         opacity: opacityAnim,
+        marginRight: 6,
+        marginBottom: 8,
       }}
     >
+      {/* Glow effect background */}
       <Animated.View
         style={{
-          backgroundColor: backgroundColorInterpolate,
-          borderRadius: 20,
-          padding: 12,
+          position: 'absolute',
+          top: -1,
+          left: -1,
+          right: -1,
+          bottom: -1,
+          borderRadius: 16,
+          backgroundColor: step.color,
+          opacity: glowOpacity,
+        }}
+      />
+      
+      <LinearGradient
+        colors={['#ffffff', '#f8fafc', '#ffffff']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          borderRadius: 14,
+          padding: 8,
           flexDirection: 'row',
           alignItems: 'center',
-          marginRight: 10,
-          marginBottom: 10,
-          borderWidth: borderWidthInterpolate,
-          borderColor: borderColorInterpolate,
-          shadowColor: '#059669',
+          borderWidth: 1.5,
+          borderColor: `${step.color}20`,
+          shadowColor: step.color,
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
+          shadowOpacity: 0.1,
           shadowRadius: 4,
           elevation: 3,
+          minWidth: 85,
+          maxWidth: 100,
         }}
       >
-        <MaterialIcons name={step.icon} size={18} color="#004d40" />
-        <ChipText>{step.text}</ChipText>
-      </Animated.View>
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: step.color,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginRight: 6,
+            shadowColor: step.color,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.2,
+            shadowRadius: 2,
+            elevation: 2,
+          }}
+        >
+          <MaterialIcons name={step.icon} size={12} color="#ffffff" />
+        </View>
+        <ChipText style={{ color: step.color }}>{step.text}</ChipText>
+      </LinearGradient>
     </Animated.View>
   );
 };
 
 const ThinkingBubble = ({ steps = defaultSteps }) => {
   const [showSteps, setShowSteps] = useState(false);
-  const containerScaleAnim = useRef(new Animated.Value(0.8)).current;
+  const containerScaleAnim = useRef(new Animated.Value(0.9)).current;
   const containerOpacityAnim = useRef(new Animated.Value(0)).current;
   const shimmerAnim = useRef(new Animated.Value(0)).current;
   const arrowRotateAnim = useRef(new Animated.Value(0)).current;
   const stepsContainerHeightAnim = useRef(new Animated.Value(0)).current;
+  const borderGlowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Container entrance animation
+    // Enhanced container entrance
     Animated.parallel([
       Animated.spring(containerScaleAnim, {
         toValue: 1,
-        tension: 100,
+        tension: 60,
         friction: 8,
         useNativeDriver: true,
       }),
       Animated.timing(containerOpacityAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 400,
+        easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Shimmer effect animation
+    // Enhanced shimmer animation
     const shimmerAnimation = Animated.loop(
       Animated.timing(shimmerAnim, {
         toValue: 1,
-        duration: 2000,
+        duration: 2500,
         easing: Easing.linear,
         useNativeDriver: true,
       })
     );
+
+    // Border glow animation
+    const borderGlowAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(borderGlowAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: false,
+        }),
+        Animated.timing(borderGlowAnim, {
+          toValue: 0,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+
     shimmerAnimation.start();
+    borderGlowAnimation.start();
 
     return () => {
       shimmerAnimation.stop();
+      borderGlowAnimation.stop();
     };
   }, []);
 
   const toggleSteps = () => {
     setShowSteps(!showSteps);
     
-    // Rotate arrow animation
     Animated.timing(arrowRotateAnim, {
       toValue: showSteps ? 0 : 1,
       duration: 300,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      easing: Easing.inOut(Easing.ease),
       useNativeDriver: true,
     }).start();
 
-    // Steps container height animation - Fixed height calculation
     Animated.timing(stepsContainerHeightAnim, {
       toValue: showSteps ? 0 : 1,
       duration: 400,
-      easing: Easing.bezier(0.4, 0, 0.2, 1),
+      easing: Easing.out(Easing.ease),
       useNativeDriver: false,
     }).start();
   };
 
   const shimmerTranslateX = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-100, 350],
+    outputRange: [-100, 320],
   });
 
   const arrowRotateInterpolate = arrowRotateAnim.interpolate({
@@ -241,10 +289,9 @@ const ThinkingBubble = ({ steps = defaultSteps }) => {
     outputRange: ['0deg', '180deg'],
   });
 
-  // Increased height to accommodate all steps properly
   const stepsContainerHeight = stepsContainerHeightAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 150], // Increased from 120 to 150
+    outputRange: [0, 120], // Reduced height
   });
 
   const stepsContainerOpacity = stepsContainerHeightAnim.interpolate({
@@ -252,25 +299,45 @@ const ThinkingBubble = ({ steps = defaultSteps }) => {
     outputRange: [0, 0, 1],
   });
 
+  const borderGlowOpacity = borderGlowAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.05, 0.15],
+  });
+
   return (
     <Animated.View
       style={{
         transform: [{ scale: containerScaleAnim }],
         opacity: containerOpacityAnim,
+        marginVertical: 6,
       }}
     >
-      <BubbleContainer
+      {/* Outer glow effect */}
+      <Animated.View
         style={{
-          // Add dynamic height based on content
-          minHeight: showSteps ? 220 : 80,
+          position: 'absolute',
+          top: -2,
+          left: -2,
+          right: -2,
+          bottom: -2,
+          borderRadius: 22,
+          backgroundColor: '#00D1B2',
+          opacity: borderGlowOpacity,
         }}
-      >
-        <BubbleGradient
-          colors={['#ffffff', '#f8f9fa', '#ffffff']}
+      />
+
+      <BubbleContainer>
+        <LinearGradient
+          colors={['#ffffff', '#fafafa', '#f8fafc']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
+          style={{
+            borderRadius: 20,
+            overflow: 'hidden',
+            minHeight: showSteps ? 180 : 65, // Reduced height
+          }}
         >
-          {/* Shimmer overlay */}
+          {/* Enhanced shimmer overlay */}
           <ShimmerOverlay>
             <Animated.View
               style={{
@@ -283,7 +350,13 @@ const ThinkingBubble = ({ steps = defaultSteps }) => {
               }}
             >
               <LinearGradient
-                colors={['transparent', 'rgba(5, 150, 105, 0.1)', 'transparent']}
+                colors={[
+                  'transparent',
+                  'rgba(0, 209, 178, 0.1)',
+                  'rgba(0, 209, 178, 0.2)',
+                  'rgba(0, 209, 178, 0.1)',
+                  'transparent'
+                ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{ width: 100, height: '100%' }}
@@ -291,55 +364,84 @@ const ThinkingBubble = ({ steps = defaultSteps }) => {
             </Animated.View>
           </ShimmerOverlay>
 
-          <HeaderRow>
-            <CustomLoader />
-            <ThinkingTextContainer>
-              <ThinkingText>Thinking</ThinkingText>
-              <DotsContainer>
-                <AnimatedDot delay={0}>.</AnimatedDot>
-                <AnimatedDot delay={200}>.</AnimatedDot>
-                <AnimatedDot delay={400}>.</AnimatedDot>
-              </DotsContainer>
-            </ThinkingTextContainer>
-            <TouchableOpacity 
-              onPress={toggleSteps} 
-              style={{ marginLeft: 'auto' }}
-              activeOpacity={0.7}
-            >
-              <ArrowButton>
-                <Animated.View
-                  style={{
-                    transform: [{ rotate: arrowRotateInterpolate }],
-                  }}
-                >
-                  <MaterialIcons name="keyboard-arrow-down" size={24} color="#004d40" />
-                </Animated.View>
-              </ArrowButton>
-            </TouchableOpacity>
-          </HeaderRow>
+          <ContentContainer>
+            <HeaderRow>
+              <LoaderContainer>
+                <CustomLoader />
+              </LoaderContainer>
+              
+              <ThinkingTextContainer>
+                <ThinkingText>AI Thinking</ThinkingText>
+                <DotsContainer>
+                  <AnimatedDot delay={0}>.</AnimatedDot>
+                  <AnimatedDot delay={250}>.</AnimatedDot>
+                  <AnimatedDot delay={500}>.</AnimatedDot>
+                </DotsContainer>
+              </ThinkingTextContainer>
+              
+              <TouchableOpacity 
+                onPress={toggleSteps}
+                activeOpacity={0.8}
+                style={{ padding: 2 }}
+              >
+                <ArrowButton>
+                  <LinearGradient
+                    colors={['#00D1B2', '#00a27a']}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Animated.View
+                      style={{
+                        transform: [{ rotate: arrowRotateInterpolate }],
+                      }}
+                    >
+                      <Feather name="chevron-down" size={14} color="#ffffff" />
+                    </Animated.View>
+                  </LinearGradient>
+                </ArrowButton>
+              </TouchableOpacity>
+            </HeaderRow>
 
-          {/* Always render the container but control its visibility */}
-          <Animated.View
-            style={{
-              height: stepsContainerHeight,
-              opacity: stepsContainerOpacity,
-              overflow: 'hidden',
-            }}
-          >
-            <Divider />
-            <ChipContainer>
-              {steps.map((step, index) => (
-                <AnimatedChip
-                  key={index}
-                  step={step}
-                  index={index}
-                  delay={index * 100}
-                  isVisible={showSteps}
+            <Animated.View
+              style={{
+                height: stepsContainerHeight,
+                opacity: stepsContainerOpacity,
+                overflow: 'hidden',
+              }}
+            >
+              <Divider>
+                <LinearGradient
+                  colors={['transparent', '#00D1B2', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    height: 1.5,
+                    borderRadius: 1,
+                  }}
                 />
-              ))}
-            </ChipContainer>
-          </Animated.View>
-        </BubbleGradient>
+              </Divider>
+              
+              <StepsTitle>Processing Steps</StepsTitle>
+              
+              <ChipContainer>
+                {steps.map((step, index) => (
+                  <AnimatedChip
+                    key={index}
+                    step={step}
+                    index={index}
+                    delay={index * 100}
+                    isVisible={showSteps}
+                  />
+                ))}
+              </ChipContainer>
+            </Animated.View>
+          </ContentContainer>
+        </LinearGradient>
       </BubbleContainer>
     </Animated.View>
   );
@@ -347,21 +449,41 @@ const ThinkingBubble = ({ steps = defaultSteps }) => {
 
 const AnimatedDot = ({ children, delay }) => {
   const opacityAnim = useRef(new Animated.Value(0.3)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const dotAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 600,
-          delay: delay,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 0.3,
-          duration: 600,
-          useNativeDriver: true,
-        }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 400,
+            delay: delay,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 0.3,
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(scaleAnim, {
+            toValue: 1.15,
+            duration: 400,
+            delay: delay,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(scaleAnim, {
+            toValue: 1,
+            duration: 400,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
       ])
     );
     dotAnimation.start();
@@ -373,10 +495,11 @@ const AnimatedDot = ({ children, delay }) => {
     <Animated.Text
       style={{
         opacity: opacityAnim,
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#059669',
-        marginLeft: 2,
+        transform: [{ scale: scaleAnim }],
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#00D1B2',
+        marginLeft: 1,
       }}
     >
       {children}
@@ -384,25 +507,20 @@ const AnimatedDot = ({ children, delay }) => {
   );
 };
 
-// Updated Styled Components with proper overflow handling
+// Updated Styled Components - Made Smaller
 const BubbleContainer = styled.View`
-  border-radius: 24px;
-  width: 320px;
+  border-radius: 20px;
+  width: ${Math.min(width - 60, 300)}px;
   elevation: 8;
-  shadow-color: #004d40;
+  shadow-color: #00D1B2;
   shadow-offset: 0px 4px;
   shadow-opacity: 0.15;
-  shadow-radius: 12px;
+  shadow-radius: 10px;
   align-self: flex-start;
-  margin: 12px 16px;
-  border-width: 1px;
-  border-color: rgba(5, 150, 105, 0.1);
-`;
-
-const BubbleGradient = styled(LinearGradient)`
-  padding: 20px;
-  border-radius: 24px;
-  min-height: 60px;
+  margin: 4px 16px;
+  border-width: 1.5px;
+  border-color: rgba(0, 209, 178, 0.12);
+  background-color: rgba(255, 255, 255, 0.95);
 `;
 
 const ShimmerOverlay = styled.View`
@@ -412,62 +530,84 @@ const ShimmerOverlay = styled.View`
   right: 0;
   bottom: 0;
   overflow: hidden;
-  border-radius: 24px;
+  border-radius: 20px;
+`;
+
+const ContentContainer = styled.View`
+  padding: 16px;
+  min-height: 50px;
 `;
 
 const HeaderRow = styled.View`
   flex-direction: row;
   align-items: center;
-  margin-bottom: 8px;
-  min-height: 40px;
+  min-height: 35px;
+`;
+
+const LoaderContainer = styled.View`
+  margin-right: 12px;
 `;
 
 const ThinkingTextContainer = styled.View`
   flex-direction: row;
   align-items: center;
-  margin-left: 12px;
   flex: 1;
 `;
 
 const ThinkingText = styled.Text`
-  font-family: 'Inter_700Bold';
-  font-size: 18px;
-  color: #004d40;
+  font-family: System;
+  font-size: 16px;
+  font-weight: 800;
+  color: #00D1B2;
+  letter-spacing: 0.3px;
 `;
 
 const DotsContainer = styled.View`
   flex-direction: row;
-  margin-left: 4px;
+  margin-left: 3px;
+  align-items: center;
 `;
 
 const ArrowButton = styled.View`
-  padding: 8px;
-  border-radius: 20px;
-  background-color: rgba(5, 150, 105, 0.1);
-  border-width: 1px;
-  border-color: rgba(5, 150, 105, 0.2);
+  border-radius: 14px;
+  shadow-color: #00D1B2;
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.15;
+  shadow-radius: 4px;
+  elevation: 3;
 `;
 
 const Divider = styled.View`
-  height: 1px;
-  background-color: rgba(5, 150, 105, 0.2);
-  margin-bottom: 16px;
-  margin-top: 8px;
+  height: 1.5px;
+  margin: 12px 0 10px 0;
   border-radius: 1px;
+  overflow: hidden;
+`;
+
+const StepsTitle = styled.Text`
+  font-family: System;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 10px;
+  text-align: center;
+  letter-spacing: 0.2px;
 `;
 
 const ChipContainer = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
-  min-height: 60px;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 50px;
 `;
 
 const ChipText = styled.Text`
-  font-family: 'Inter_500Medium';
-  font-size: 13px;
-  color: #004d40;
-  margin-left: 8px;
+  font-family: System;
+  font-size: 10px;
   font-weight: 600;
+  letter-spacing: 0.1px;
+  flex: 1;
 `;
 
 export default ThinkingBubble;

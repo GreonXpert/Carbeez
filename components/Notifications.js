@@ -286,13 +286,13 @@ const SwipeableNotification = ({ item, onPin, onDelete, onPress }) => {
     >
       {/* Background Actions */}
       <View style={styles.actionsContainer}>
-        <View style={[styles.actionLeft, { backgroundColor: '#6366f1' }]}>
-          <Feather name="bookmark" size={24} color="#ffffff" />
-          <Text style={styles.actionText}>Pin Top</Text>
-        </View>
-        <View style={[styles.actionRight, { backgroundColor: '#ef4444' }]}>
+        <View style={[styles.actionLeft, { backgroundColor: '#ef4444' }]}>
           <Feather name="trash-2" size={24} color="#ffffff" />
           <Text style={styles.actionText}>Delete</Text>
+        </View>
+        <View style={[styles.actionRight, { backgroundColor: '#6366f1'  }]}>
+          <Feather name="bookmark" size={24} color="#ffffff" />
+          <Text style={styles.actionText}>Pin Top</Text>
         </View>
       </View>
 

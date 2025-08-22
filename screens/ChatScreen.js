@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, CommonActions } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import InputBar from '../components/InputBar';
 import ThinkingBubble from '../components/ThinkingBubble';
 import SearchGifBubble from '../components/SearchGifBubble.js';
 import GlassmorphicHeader from '../components/GlassmorphicHeader.js';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const ChatScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -27,6 +29,7 @@ const ChatScreen = ({ route }) => {
   const [thinkingStage, setThinkingStage] = useState(0);
   const flatListRef = useRef(null);
   const loadingTimerRef = useRef(null);
+   const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -55,10 +58,11 @@ const ChatScreen = ({ route }) => {
   }, [consultantType, userName]);
 
   const handleLogout = () => {
-    Alert.alert( "Logout", "Are you sure you want to logout?",
+    Alert.alert("Logout", "Are you sure you want to logout?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "OK", onPress: async () => {
+        {
+          text: "OK", onPress: async () => {
             try {
               await AsyncStorage.removeItem('@user_data');
               navigation.replace('Login');
@@ -100,7 +104,7 @@ const ChatScreen = ({ route }) => {
     if (flatListRef.current) {
       flatListRef.current.scrollToEnd({ animated: true });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
   const renderThinkingItem = () => {
     if (thinkingStage === 1) return <SearchGifBubble />;
@@ -109,19 +113,23 @@ const ChatScreen = ({ route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screenContainer}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <LinearGradient
+        colors={['#eefcf9', '#ffffff']}
+        style={styles.gradientBackground}
+        pointerEvents="none"
+      />
       <GlassmorphicHeader
         title={consultantType}
         onProfilePress={handleProfile}
         onLogoutPress={handleLogout}
       />
 
-      {/* --- FINAL FIX IS HERE --- */}
       <KeyboardAvoidingView
-        // Use 'padding' for iOS and let Android handle it natively
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={0} // Reset the offset
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 48 : 0}
       >
         <FlatList
           ref={flatListRef}
@@ -132,34 +140,58 @@ const ChatScreen = ({ route }) => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
           style={styles.flatList}
+          showsVerticalScrollIndicator={false}
         />
-        <InputBar
-          value={input}
-          onChangeText={setInput}
-          onSend={handleSend}
-          isLoading={isLoading}
-        />
+        <View style={styles.inputBarContainer}>
+          <InputBar
+            value={input}
+            onChangeText={setInput}
+            onSend={handleSend}
+            isLoading={isLoading}
+          />
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  screenContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
+    position: 'relative',
+  },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   flatList: {
     flex: 1,
+    zIndex: 1,
   },
   messageList: {
     paddingHorizontal: 10,
-    paddingTop: 120, // Space for the header
-    paddingBottom: 10,
+    paddingTop: 6, // Enough space for the header, a bit less than before
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
+    zIndex: 1,
   },
+  inputBarContainer: {
+    paddingHorizontal: 6,
+    paddingBottom: Platform.OS === 'ios' ? 16 : 8,
+    paddingTop: 8,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderTopLeftRadius: 19,
+    borderTopRightRadius: 19,
+    shadowColor: '#00D1B2',
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    shadowOffset: { height: -2, width: 0 },
+    elevation: 8,
+  }
 });
 
 export default ChatScreen;
