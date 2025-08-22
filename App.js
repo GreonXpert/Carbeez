@@ -11,13 +11,19 @@ import CustomLoader from './components/CustomLoader';
 import WelcomeScreen from './screens/WelcomeScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import MainTabNavigator from './navigation/MainTabNavigator';
-import ProfileScreen from './screens/ProfileScreen'; // FIX 1: Import the Profile screen
+
+// Import the new components
+import PersonalInfo from './components/PersonalInfo';
+import PrivacySecurity from './components/PrivacySecurity';
+import HelpCenter from './components/HelpCenter';
+import ContactUs from './components/ContactUs';
 
 const Stack = createStackNavigator();
 
 export default function App() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [fontsLoaded] = useFonts({
     'Inter_900Black': require('./assets/fonts/Inter_18pt-Black.ttf'),
     'Inter_400Regular': require('./assets/fonts/Inter_18pt-Regular.ttf'),
     'Inter_700Bold': require('./assets/fonts/Inter_18pt-Bold.ttf'),
@@ -46,9 +52,6 @@ export default function App() {
   if (!fontsLoaded || isLoading) {
     return <CustomLoader />;
   }
-   if (fontError) {
-    console.error("Font loading error:", fontError);
-  }
 
   return (
     <NavigationContainer>
@@ -61,8 +64,12 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="MainApp" component={MainTabNavigator} />
-        {/* FIX 2: Add the Profile screen to the navigator */}
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        {/* Add the new screens to the navigator */}
+        <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
+        <Stack.Screen name="PrivacySecurity" component={PrivacySecurity} />
+        <Stack.Screen name="HelpCenter" component={HelpCenter} />
+        <Stack.Screen name="ContactUs" component={ContactUs} />
       </Stack.Navigator>
     </NavigationContainer>
   );

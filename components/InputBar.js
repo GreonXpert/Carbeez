@@ -1,56 +1,76 @@
 // components/InputBar.js
 import React from 'react';
-import styled from 'styled-components/native';
+import {
+  View,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  SafeAreaView,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
 
-
-const InputContainer = styled.View`
-  padding: ${Platform.OS === "android" ? "16px" : "24px"};
-  background-color: rgba(255, 255, 255, 0.95);
-  border-top-width: 1px;
-  border-top-color: rgba(14, 165, 163, 0.1);
-  flex-direction: row;
-  align-items: center;
-`;
-
-const StyledTextInput = styled.TextInput`
-  flex: 1;
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(14, 165, 163, 0.1);
-  border-radius: 20px;
-  padding: 12px 16px;
-  font-size: 16px;
-  color: #0f172a;
-`;
-
-const SendButton = styled.TouchableOpacity`
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  background-color: #10b981;
-  justify-content: center;
-  align-items: center;
-  margin-left: 12px;
-  opacity: ${(props) => (props.disabled ? 0.5 : 1.0)};
-`;
-
-const InputBar = ({ value, onChangeText, onSend, disabled }) => {
+const InputBar = ({ value, onChangeText, onSend, isLoading }) => {
   return (
-    <InputContainer>
-      <StyledTextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder="Ask about GHG inventory..."
-        placeholderTextColor="#94a3b8"
-        multiline
-        editable={!disabled}
-      />
-      <SendButton onPress={onSend} disabled={disabled}>
-        <MaterialIcons name="send" size={24} color="white" />
-      </SendButton>
-    </InputContainer>
+    // Use SafeAreaView to handle the bottom notch on iOS
+    <SafeAreaView edges={['bottom']} style={styles.safeArea}>
+      <View style={styles.container}>
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder="Type your message..."
+          placeholderTextColor="#9CA3AF"
+          multiline
+        />
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={onSend}
+          disabled={isLoading || value.trim().length === 0}
+        >
+          <MaterialIcons
+            name="send"
+            size={24}
+            color={value.trim().length > 0 ? '#FFFFFF' : '#f3efefff'}
+          />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120, // Allow for multiple lines
+    paddingHorizontal: 16,
+    paddingVertical: Platform.select({ ios: 12, android: 8 }),
+    backgroundColor: '#F3F4F6',
+    borderRadius: 22,
+    fontSize: 16,
+    color: '#111827',
+  },
+  sendButton: {
+    marginLeft: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#0EA5A3',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export default InputBar;

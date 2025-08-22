@@ -1,122 +1,48 @@
 // screens/ProfileScreen.js
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
   ScrollView,
-  Animated,
   Dimensions,
-  Alert,
-  Share,
-  Platform
+  StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 
 const { width, height } = Dimensions.get('window');
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
-    fetchUserData();
-    animateEntrance();
-  }, []);
-
-  const fetchUserData = async () => {
-    try {
+    const fetchUserData = async () => {
       const userDataString = await AsyncStorage.getItem('@user_data');
       if (userDataString) {
         setUserData(JSON.parse(userDataString));
       }
-    } catch (e) {
-      console.error("Failed to load user data.", e);
-    }
-  };
+    };
+    fetchUserData();
+  }, []);
 
-  const animateEntrance = () => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      })
-    ]).start();
-  };
-
-  const handleShare = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      await Share.share({
-        message: `Check out ${userData?.name}'s profile!`,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const handleEditProfile = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Navigate to edit profile screen
-    console.log('Edit profile pressed');
-  };
-
-  const handleSettings = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate to settings
-    console.log('Settings pressed');
-  };
-
-  const handleLogout = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Sign Out", 
-          style: "destructive",
-          onPress: async () => {
-            await AsyncStorage.removeItem('@user_data');
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
-          }
-        }
-      ]
-    );
-  };
-
-  const ProfileOption = ({ icon, title, subtitle, onPress, showArrow = true, color = "#111827" }) => (
-    <TouchableOpacity style={styles.optionItem} onPress={onPress}>
-      <View style={styles.optionLeft}>
-        <View style={[styles.optionIconContainer, { backgroundColor: color + '15' }]}>
-          <Ionicons name={icon} size={20} color={color} />
-        </View>
-        <View style={styles.optionTextContainer}>
-          <Text style={styles.optionTitle}>{title}</Text>
-          {subtitle && <Text style={styles.optionSubtitle}>{subtitle}</Text>}
-        </View>
+  const ProfileOption = ({ icon, title, subtitle, onPress, iconBg }) => (
+    <TouchableOpacity style={styles.modernOptionItem} onPress={onPress}>
+      <View style={[styles.iconContainer, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon} size={22} color="#ffffff" />
       </View>
-      {showArrow && (
-        <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
-      )}
+      <View style={styles.optionContent}>
+        <Text style={styles.optionTitle}>{title}</Text>
+        {subtitle && <Text style={styles.optionSubtitle}>{subtitle}</Text>}
+      </View>
+      <View style={styles.chevronContainer}>
+        <MaterialIcons name="chevron-right" size={20} color="#d1d5db" />
+      </View>
     </TouchableOpacity>
   );
 
@@ -127,176 +53,180 @@ const ProfileScreen = () => {
     </View>
   );
 
+  const QuickAction = ({ icon, label, color, onPress }) => (
+    <TouchableOpacity style={styles.quickActionBtn} onPress={onPress}>
+      <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
+        <Feather name={icon} size={20} color="#ffffff" />
+      </View>
+      <Text style={styles.quickActionLabel}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.headerButton}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <TouchableOpacity 
-          onPress={handleShare}
-          style={styles.headerButton}
-        >
-          <Feather name="share" size={20} color="#111827" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+      <StatusBar barStyle="light-content" backgroundColor="#00D1B2" />
+      
+      {/* Header with Gradient Background */}
+      <LinearGradient
+        colors={['#00D1B2', '#00a27a', '#008a66']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
       >
-        {/* Profile Hero Section */}
-        <Animated.View 
-          style={[
-            styles.heroSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          <LinearGradient
-            colors={['#667eea', '#764ba2']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <View style={styles.avatarSection}>
+            <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity style={styles.editButton}>
+            <Feather name="edit-3" size={20} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Info Section with Glassmorphism Effect */}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarWrapper}>
+            <View style={styles.avatarGlow}>
               <View style={styles.avatarContainer}>
-                <LinearGradient
-                  colors={['#4CAF50', '#45a049']}
-                  style={styles.avatarGradient}
-                >
-                  <Text style={styles.avatarInitial}>
-                    {userData?.name ? userData.name.charAt(0).toUpperCase() : '?'}
-                  </Text>
-                </LinearGradient>
-                <TouchableOpacity style={styles.editAvatarButton}>
-                  <MaterialIcons name="photo-camera" size={16} color="#FFFFFF" />
-                </TouchableOpacity>
+                <Text style={styles.avatarInitial}>
+                  {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
+                </Text>
               </View>
-              
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{userData?.name || 'User Name'}</Text>
-                <Text style={styles.userEmail}>{userData?.email || 'user@example.com'}</Text>
-                <Text style={styles.userRole}>Premium Member</Text>
-              </View>
-
-              <TouchableOpacity 
-                style={styles.editButton}
-                onPress={handleEditProfile}
-              >
-                <Feather name="edit-2" size={16} color="#667eea" />
-                <Text style={styles.editButtonText}>Edit Profile</Text>
-              </TouchableOpacity>
             </View>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* Stats Section */}
-        <Animated.View 
-          style={[
-            styles.statsSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-         
-        </Animated.View>
-
-        {/* Options Section */}
-        <Animated.View 
-          style={[
-            styles.optionsSection,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }]
-            }
-          ]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Account</Text>
+            <TouchableOpacity style={styles.cameraButton}>
+              <Feather name="camera" size={16} color="#00D1B2" />
+            </TouchableOpacity>
           </View>
           
-          <View style={styles.optionsContainer}>
-            <ProfileOption
-              icon="person-outline"
-              title="Personal Information"
-              subtitle="Update your details"
-              onPress={() => console.log('Personal info')}
+          <Text style={styles.userName}>{userData?.name || 'John Doe'}</Text>
+          <Text style={styles.userEmail}>{userData?.email || 'john.doe@example.com'}</Text>
+          <View style={styles.userBadge}>
+            <Text style={styles.userRole}>Premium Member</Text>
+          </View>
+          
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <StatCard number="24" label="Projects" />
+            <StatCard number="1.2k" label="Followers" />
+            <StatCard number="456" label="Following" />
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        {/* Quick Actions with Modern Design */}
+        <View style={styles.quickActionsContainer}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsRow}>
+            <QuickAction 
+              icon="settings" 
+              label="Settings" 
+              color="#6366f1" 
+              onPress={() => navigation.navigate('Settings')}
             />
-            <ProfileOption
-              icon="notifications-outline"
-              title="Notifications"
-              subtitle="Manage your preferences"
-              onPress={() => console.log('Notifications')}
+            <QuickAction 
+              icon="bookmark" 
+              label="Saved" 
+              color="#f59e0b" 
+              onPress={() => navigation.navigate('Saved')}
             />
-            <ProfileOption
-              icon="security"
-              title="Privacy & Security"
-              subtitle="Password, 2FA"
-              onPress={() => console.log('Security')}
+            <QuickAction 
+              icon="heart" 
+              label="Liked" 
+              color="#ef4444" 
+              onPress={() => navigation.navigate('Liked')}
             />
-            <ProfileOption
-              icon="wallet-outline"
-              title="Payment Methods"
-              subtitle="Manage cards and billing"
-              onPress={() => console.log('Payment')}
+            <QuickAction 
+              icon="share-2" 
+              label="Share" 
+              color="#8b5cf6" 
+              onPress={() => navigation.navigate('Share')}
+            />
+          </View>
+        </View>
+
+        {/* Menu Options with Modern Cards */}
+        <View style={styles.menuContainer}>
+          <Text style={styles.sectionTitle}>Account & Settings</Text>
+          
+          <View style={styles.menuCard}>
+            <ProfileOption 
+              icon="person-outline" 
+              title="Personal Information" 
+              subtitle="Update your profile details"
+              iconBg="#00D1B2"
+              onPress={() => navigation.navigate('PersonalInfo')} 
+            />
+            <View style={styles.divider} />
+            
+            <ProfileOption 
+              icon="lock-closed-outline" 
+              title="Privacy & Security" 
+              subtitle="Manage your account security"
+              iconBg="#6366f1"
+              onPress={() => navigation.navigate('PrivacySecurity')} 
+            />
+            <View style={styles.divider} />
+            
+            <ProfileOption 
+              icon="notifications-outline" 
+              title="Notifications" 
+              subtitle="Configure alert preferences"
+              iconBg="#f59e0b"
+              onPress={() => navigation.navigate('Notifications')} 
+            />
+            <View style={styles.divider} />
+            
+            <ProfileOption 
+              icon="card-outline" 
+              title="Payment Methods" 
+              subtitle="Manage billing information"
+              iconBg="#10b981"
+              onPress={() => navigation.navigate('PaymentMethods')} 
             />
           </View>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Support</Text>
+          <View style={styles.menuCard}>
+            <ProfileOption 
+              icon="help-circle-outline" 
+              title="Help Center" 
+              subtitle="Get support and assistance"
+              iconBg="#8b5cf6"
+              onPress={() => navigation.navigate('HelpCenter')} 
+            />
+            <View style={styles.divider} />
+            
+            <ProfileOption 
+              icon="call-outline" 
+              title="Contact Us" 
+              subtitle="Reach out to our team"
+              iconBg="#ef4444"
+              onPress={() => navigation.navigate('ContactUs')} 
+            />
+            <View style={styles.divider} />
+            
+            <ProfileOption 
+              icon="information-circle-outline" 
+              title="About App" 
+              subtitle="Version 2.1.0"
+              iconBg="#6b7280"
+              onPress={() => navigation.navigate('About')} 
+            />
           </View>
-          
-          <View style={styles.optionsContainer}>
-            <ProfileOption
-              icon="help-circle-outline"
-              title="Help Center"
-              subtitle="FAQ and support"
-              onPress={() => console.log('Help')}
-            />
-            <ProfileOption
-              icon="chatbubble-outline"
-              title="Contact Us"
-              subtitle="Get in touch"
-              onPress={() => console.log('Contact')}
-            />
-            <ProfileOption
-              icon="star-outline"
-              title="Rate App"
-              subtitle="Share your feedback"
-              onPress={() => console.log('Rate')}
-            />
-          </View>
+        </View>
 
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>More</Text>
-          </View>
-          
-          <View style={styles.optionsContainer}>
-            <ProfileOption
-              icon="settings-outline"
-              title="Settings"
-              onPress={handleSettings}
-            />
-            <ProfileOption
-              icon="log-out-outline"
-              title="Sign Out"
-              onPress={handleLogout}
-              showArrow={false}
-              color="#EF4444"
-            />
-          </View>
-        </Animated.View>
+        {/* Logout Section */}
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity style={styles.logoutButton}>
+            <Feather name="log-out" size={20} color="#ef4444" />
+            <Text style={styles.logoutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -305,210 +235,260 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#fafafa',
+  },
+  headerGradient: {
+    paddingBottom: 30,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    paddingTop: 10,
+    paddingBottom: 20,
   },
-  headerButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 30,
-  },
-  heroSection: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 20,
+  editButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-  },
-  gradientBackground: {
-    padding: 24,
-  },
-  avatarSection: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarContainer: {
+  profileSection: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  avatarWrapper: {
     position: 'relative',
     marginBottom: 16,
   },
-  avatarGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  avatarGlow: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  avatarContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarInitial: {
     fontSize: 36,
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#00D1B2',
+    fontWeight: '800',
   },
-  editAvatarButton: {
+  cameraButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    bottom: 5,
+    right: 5,
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
-  },
-  userInfo: {
-    alignItems: 'center',
-    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   userName: {
     fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: '800',
+    color: '#ffffff',
     marginBottom: 4,
+    letterSpacing: 0.5,
   },
   userEmail: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 8,
+  },
+  userBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 24,
   },
   userRole: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    gap: 8,
-  },
-  editButtonText: {
-    color: '#667eea',
+    color: '#ffffff',
     fontWeight: '600',
-    fontSize: 16,
   },
-  statsSection: {
+  statsRow: {
     flexDirection: 'row',
-    marginHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
+    justifyContent: 'space-around',
+    width: '100%',
   },
   statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 16,
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    minWidth: 80,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 4,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
     fontWeight: '500',
   },
-  optionsSection: {
-    marginHorizontal: 20,
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#fafafa',
   },
-  sectionHeader: {
-    marginBottom: 12,
-    marginTop: 8,
+  quickActionsContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginLeft: 4,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 16,
+    letterSpacing: 0.3,
   },
-  optionsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginBottom: 24,
-    overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  optionItem: {
+  quickActionsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    marginBottom: 24,
   },
-  optionLeft: {
-    flexDirection: 'row',
+  quickActionBtn: {
     alignItems: 'center',
     flex: 1,
+    marginHorizontal: 4,
   },
-  optionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  quickActionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  quickActionLabel: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  menuContainer: {
+    paddingHorizontal: 20,
+  },
+  menuCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  modernOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
-  optionTextContainer: {
+  optionContent: {
     flex: 1,
   },
   optionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1A1A1A',
     marginBottom: 2,
   },
   optionSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '400',
+  },
+  chevronContainer: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f3f4f6',
+    marginLeft: 80,
+  },
+  logoutContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginLeft: 8,
   },
 });
 

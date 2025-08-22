@@ -1,8 +1,14 @@
 // screens/ChatScreen.js
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// FIX: Import CommonActions to handle navigation correctly
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { sendMessage } from '../services/gemini.js';
 import MessageBubble from '../components/MessageBubble';
@@ -31,7 +37,7 @@ const ChatScreen = ({ route }) => {
           setUserName(userData.name);
         }
       } catch (e) {
-        console.error("Failed to load user data from storage.", e);
+        console.error("Failed to load user data.", e);
       }
     };
     fetchUserData();
@@ -49,20 +55,14 @@ const ChatScreen = ({ route }) => {
   }, [consultantType, userName]);
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
+    Alert.alert( "Logout", "Are you sure you want to logout?",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "OK",
-          onPress: async () => {
+        { text: "OK", onPress: async () => {
             try {
               await AsyncStorage.removeItem('@user_data');
               navigation.replace('Login');
-            } catch (e) {
-              Alert.alert("Error", "Could not logout. Please try again.");
-            }
+            } catch (e) { Alert.alert("Error", "Could not logout."); }
           }
         }
       ]
@@ -70,12 +70,7 @@ const ChatScreen = ({ route }) => {
   };
 
   const handleProfile = () => {
-    // FIX: Use CommonActions.navigate to bubble up to the parent navigator
-    navigation.dispatch(
-      CommonActions.navigate({
-        name: 'Profile',
-      })
-    );
+    navigation.dispatch(CommonActions.navigate({ name: 'Profile' }));
   };
 
   const handleSend = async () => {
@@ -85,7 +80,6 @@ const ChatScreen = ({ route }) => {
     setInput('');
     setIsLoading(true);
     setThinkingStage(1);
-
     loadingTimerRef.current = setTimeout(() => setThinkingStage(2), 2000);
 
     try {
@@ -121,10 +115,14 @@ const ChatScreen = ({ route }) => {
         onProfilePress={handleProfile}
         onLogoutPress={handleLogout}
       />
+
+      {/* --- FINAL FIX IS HERE --- */}
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        // Use 'padding' for iOS and let Android handle it natively
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}>
+        keyboardVerticalOffset={0} // Reset the offset
+      >
         <FlatList
           ref={flatListRef}
           data={[...messages, ...(isLoading ? [{ id: 'thinking' }] : [])]}
@@ -133,6 +131,7 @@ const ChatScreen = ({ route }) => {
           }
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messageList}
+          style={styles.flatList}
         />
         <InputBar
           value={input}
@@ -146,9 +145,21 @@ const ChatScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  keyboardAvoidingView: { flex: 1 },
-  messageList: { paddingHorizontal: 10, paddingTop: 120, paddingBottom: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  flatList: {
+    flex: 1,
+  },
+  messageList: {
+    paddingHorizontal: 10,
+    paddingTop: 120, // Space for the header
+    paddingBottom: 10,
+  },
 });
 
 export default ChatScreen;
