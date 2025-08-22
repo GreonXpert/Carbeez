@@ -107,12 +107,7 @@ const ProfileScreen = () => {
             <Text style={styles.userRole}>Premium Member</Text>
           </View>
           
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <StatCard number="24" label="Projects" />
-            <StatCard number="1.2k" label="Followers" />
-            <StatCard number="456" label="Following" />
-          </View>
+          
         </View>
       </LinearGradient>
 
@@ -162,14 +157,7 @@ const ProfileScreen = () => {
             />
             <View style={styles.divider} />
             
-            <ProfileOption 
-              icon="lock-closed-outline" 
-              title="Privacy & Security" 
-              subtitle="Manage your account security"
-              iconBg="#6366f1"
-              onPress={() => navigation.navigate('PrivacySecurity')} 
-            />
-            <View style={styles.divider} />
+           
             
             <ProfileOption 
               icon="notifications-outline" 

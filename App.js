@@ -19,6 +19,8 @@ import PersonalInfo from './components/PersonalInfo';
 import PrivacySecurity from './components/PrivacySecurity';
 import HelpCenter from './components/HelpCenter';
 import ContactUs from './components/ContactUs';
+import About from './components/About';
+import Notifications from './components/Notifications';
 
 const Stack = createStackNavigator();
 
@@ -70,6 +72,9 @@ export default function App() {
         <Stack.Screen name="PrivacySecurity" component={PrivacySecurity} />
         <Stack.Screen name="HelpCenter" component={HelpCenter} />
         <Stack.Screen name="ContactUs" component={ContactUs} />
+        <Stack.Screen name="About" component={About}/>
+        <Stack.Screen name="Notifications" component={Notifications} />
+
       </Stack.Navigator>
     </NavigationContainer>
   );

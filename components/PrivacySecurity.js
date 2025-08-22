@@ -10,11 +10,13 @@ import {
   Alert,
   ScrollView,
   StatusBar,
-  Dimensions
+  Dimensions,
+  Animated
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -93,6 +95,9 @@ const PrivacySecurity = () => {
     setIsLoading(true);
 
     try {
+      // Simulate loading delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       const userDataString = await AsyncStorage.getItem('@user_data');
       if (userDataString) {
         const userData = JSON.parse(userDataString);
@@ -109,6 +114,7 @@ const PrivacySecurity = () => {
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        setStoredPassword(newPassword); // Update stored password display
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to update password. Please try again.');
@@ -150,9 +156,9 @@ const PrivacySecurity = () => {
       <MaterialIcons 
         name={met ? "check-circle" : "radio-button-unchecked"} 
         size={16} 
-        color={met ? "#10B981" : "#D1D5DB"} 
+        color={met ? "#00D1B2" : "#D1D5DB"} 
       />
-      <Text style={[styles.requirementText, { color: met ? "#10B981" : "#6B7280" }]}>
+      <Text style={[styles.requirementText, { color: met ? "#00D1B2" : "#6B7280" }]}>
         {text}
       </Text>
     </View>
@@ -160,19 +166,26 @@ const PrivacySecurity = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Privacy & Security</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      {/* Header with Gradient Background */}
+      <LinearGradient
+        colors={['#00D1B2', '#00a27a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Privacy & Security</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
@@ -180,7 +193,9 @@ const PrivacySecurity = () => {
           {/* Current Password Display Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="lock" size={24} color="#4CAF50" />
+              <View style={[styles.iconContainer, { backgroundColor: '#00D1B2' }]}>
+                <Feather name="lock" size={20} color="#ffffff" />
+              </View>
               <Text style={styles.sectionTitle}>Current Password</Text>
             </View>
             
@@ -192,9 +207,9 @@ const PrivacySecurity = () => {
                 onPress={() => setShowStoredPassword(!showStoredPassword)} 
                 style={styles.eyeIcon}
               >
-                <MaterialIcons 
-                  name={showStoredPassword ? 'visibility-off' : 'visibility'} 
-                  size={24} 
+                <Feather 
+                  name={showStoredPassword ? 'eye-off' : 'eye'} 
+                  size={20} 
                   color="#6B7280" 
                 />
               </TouchableOpacity>
@@ -204,7 +219,9 @@ const PrivacySecurity = () => {
           {/* Change Password Section */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <MaterialIcons name="security" size={24} color="#4CAF50" />
+              <View style={[styles.iconContainer, { backgroundColor: '#00a27a' }]}>
+                <Feather name="shield" size={20} color="#ffffff" />
+              </View>
               <Text style={styles.sectionTitle}>Change Password</Text>
             </View>
 
@@ -212,6 +229,9 @@ const PrivacySecurity = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Current Password</Text>
               <View style={[styles.inputContainer, currentPassword && styles.inputFocused]}>
+                <View style={styles.inputIconContainer}>
+                  <Feather name="lock" size={20} color="#00D1B2" />
+                </View>
                 <TextInput
                   style={styles.input}
                   secureTextEntry={!showCurrentPassword}
@@ -224,9 +244,9 @@ const PrivacySecurity = () => {
                   onPress={() => setShowCurrentPassword(!showCurrentPassword)} 
                   style={styles.eyeIcon}
                 >
-                  <MaterialIcons 
-                    name={showCurrentPassword ? 'visibility-off' : 'visibility'} 
-                    size={24} 
+                  <Feather 
+                    name={showCurrentPassword ? 'eye-off' : 'eye'} 
+                    size={20} 
                     color="#6B7280" 
                   />
                 </TouchableOpacity>
@@ -237,6 +257,9 @@ const PrivacySecurity = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>New Password</Text>
               <View style={[styles.inputContainer, newPassword && styles.inputFocused]}>
+                <View style={styles.inputIconContainer}>
+                  <Feather name="key" size={20} color="#00D1B2" />
+                </View>
                 <TextInput
                   style={styles.input}
                   secureTextEntry={!showNewPassword}
@@ -249,9 +272,9 @@ const PrivacySecurity = () => {
                   onPress={() => setShowNewPassword(!showNewPassword)} 
                   style={styles.eyeIcon}
                 >
-                  <MaterialIcons 
-                    name={showNewPassword ? 'visibility-off' : 'visibility'} 
-                    size={24} 
+                  <Feather 
+                    name={showNewPassword ? 'eye-off' : 'eye'} 
+                    size={20} 
                     color="#6B7280" 
                   />
                 </TouchableOpacity>
@@ -267,6 +290,9 @@ const PrivacySecurity = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Confirm New Password</Text>
               <View style={[styles.inputContainer, confirmPassword && styles.inputFocused]}>
+                <View style={styles.inputIconContainer}>
+                  <Feather name="check-circle" size={20} color="#00D1B2" />
+                </View>
                 <TextInput
                   style={styles.input}
                   secureTextEntry={!showConfirmPassword}
@@ -279,9 +305,9 @@ const PrivacySecurity = () => {
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)} 
                   style={styles.eyeIcon}
                 >
-                  <MaterialIcons 
-                    name={showConfirmPassword ? 'visibility-off' : 'visibility'} 
-                    size={24} 
+                  <Feather 
+                    name={showConfirmPassword ? 'eye-off' : 'eye'} 
+                    size={20} 
                     color="#6B7280" 
                   />
                 </TouchableOpacity>
@@ -290,14 +316,14 @@ const PrivacySecurity = () => {
               {/* Password Match Indicator */}
               {confirmPassword.length > 0 && (
                 <View style={styles.matchIndicator}>
-                  <MaterialIcons 
-                    name={newPassword === confirmPassword ? "check-circle" : "cancel"} 
+                  <Feather 
+                    name={newPassword === confirmPassword ? "check-circle" : "x-circle"} 
                     size={16} 
-                    color={newPassword === confirmPassword ? "#10B981" : "#EF4444"} 
+                    color={newPassword === confirmPassword ? "#00D1B2" : "#EF4444"} 
                   />
                   <Text style={[
                     styles.matchText, 
-                    { color: newPassword === confirmPassword ? "#10B981" : "#EF4444" }
+                    { color: newPassword === confirmPassword ? "#00D1B2" : "#EF4444" }
                   ]}>
                     {newPassword === confirmPassword ? "Passwords match" : "Passwords don't match"}
                   </Text>
@@ -315,27 +341,47 @@ const PrivacySecurity = () => {
             onPress={handleChangePassword}
             disabled={!passwordValidation.isValid || newPassword !== confirmPassword || isLoading}
           >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Updating Password...' : 'Update Password'}
-            </Text>
-            {!isLoading && (
-              <MaterialIcons name="security" size={20} color="white" style={styles.buttonIcon} />
-            )}
+            <LinearGradient
+              colors={
+                (!passwordValidation.isValid || newPassword !== confirmPassword || isLoading) 
+                  ? ['#D1D5DB', '#D1D5DB'] 
+                  : ['#00D1B2', '#00a27a']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.buttonGradient}
+            >
+              {isLoading ? (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.buttonText}>Updating Password...</Text>
+                </View>
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Text style={styles.buttonText}>Update Password</Text>
+                  <Feather name="shield-check" size={18} color="white" style={styles.buttonIcon} />
+                </View>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* Security Tips */}
           <View style={styles.tipsContainer}>
-            <Text style={styles.tipsTitle}>Security Tips</Text>
+            <View style={styles.tipsHeader}>
+              <View style={[styles.iconContainer, { backgroundColor: '#F59E0B' }]}>
+                <Feather name="shield" size={18} color="#ffffff" />
+              </View>
+              <Text style={styles.tipsTitle}>Security Tips</Text>
+            </View>
             <View style={styles.tipItem}>
-              <MaterialIcons name="lightbulb" size={16} color="#F59E0B" />
+              <Feather name="check" size={16} color="#00D1B2" />
               <Text style={styles.tipText}>Use a unique password you don't use elsewhere</Text>
             </View>
             <View style={styles.tipItem}>
-              <MaterialIcons name="lightbulb" size={16} color="#F59E0B" />
+              <Feather name="check" size={16} color="#00D1B2" />
               <Text style={styles.tipText}>Consider using a password manager</Text>
             </View>
             <View style={styles.tipItem}>
-              <MaterialIcons name="lightbulb" size={16} color="#F59E0B" />
+              <Feather name="check" size={16} color="#00D1B2" />
               <Text style={styles.tipText}>Change your password regularly</Text>
             </View>
           </View>
@@ -348,31 +394,39 @@ const PrivacySecurity = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fafafa',
+  },
+  headerGradient: {
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    paddingBottom: 30,
+    elevation: 8,
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    paddingTop: 50,
+    paddingBottom: 20,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#111827',
+    fontSize: 21,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.6,
   },
   scrollView: {
     flex: 1,
@@ -382,71 +436,89 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     padding: 20,
     marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Inter_700Bold',
-    color: '#111827',
-    marginLeft: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   passwordDisplayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fafafa',
     paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 2,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: '#E5E7EB',
     height: 56,
   },
   passwordText: {
     flex: 1,
-    fontFamily: 'Inter_500Medium',
     fontSize: 16,
-    color: '#111827',
+    color: '#1A1A1A',
     letterSpacing: 2,
+    fontWeight: '600',
   },
   inputGroup: {
     marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#374151',
+    fontWeight: '600',
+    color: '#00D1B2',
     marginBottom: 8,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderColor: '#E5E7EB',
     borderWidth: 2,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
     minHeight: 56,
   },
   inputFocused: {
-    borderColor: '#4CAF50',
+    borderColor: '#00D1B2',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  inputIconContainer: {
+    marginLeft: 16,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    paddingHorizontal: 16,
     fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    color: '#111827',
+    color: '#1A1A1A',
+    fontWeight: '500',
   },
   eyeIcon: {
     padding: 16,
@@ -454,15 +526,15 @@ const styles = StyleSheet.create({
   strengthContainer: {
     marginTop: 12,
     padding: 16,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#fafafa',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
   strengthTitle: {
     fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#374151',
+    fontWeight: '600',
+    color: '#1A1A1A',
     marginBottom: 12,
   },
   requirementsList: {
@@ -475,7 +547,7 @@ const styles = StyleSheet.create({
   },
   requirementText: {
     fontSize: 13,
-    fontFamily: 'Inter_400Regular',
+    fontWeight: '500',
   },
   matchIndicator: {
     flexDirection: 'row',
@@ -485,31 +557,41 @@ const styles = StyleSheet.create({
   },
   matchText: {
     fontSize: 13,
-    fontFamily: 'Inter_500Medium',
+    fontWeight: '600',
   },
   button: {
-    backgroundColor: '#4CAF50',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 10,
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonDisabled: {
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  buttonGradient: {
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 18,
-    borderRadius: 16,
-    marginTop: 10,
-    elevation: 3,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
-  buttonDisabled: {
-    backgroundColor: '#D1D5DB',
-    elevation: 0,
-    shadowOpacity: 0,
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   buttonText: {
     color: 'white',
-    fontFamily: 'Inter_600SemiBold',
     fontSize: 16,
+    fontWeight: '600',
   },
   buttonIcon: {
     marginLeft: 8,
@@ -517,29 +599,39 @@ const styles = StyleSheet.create({
   tipsContainer: {
     marginTop: 20,
     padding: 20,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#E5E7EB',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  tipsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   tipsTitle: {
     fontSize: 16,
-    fontFamily: 'Inter_600SemiBold',
-    color: '#92400E',
-    marginBottom: 12,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    letterSpacing: 0.3,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
-    gap: 8,
+    marginBottom: 12,
+    gap: 12,
   },
   tipText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-    color: '#92400E',
+    fontSize: 14,
+    color: '#374151',
     flex: 1,
-    lineHeight: 18,
+    lineHeight: 20,
+    fontWeight: '500',
   },
 });
 
