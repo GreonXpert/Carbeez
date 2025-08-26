@@ -1,34 +1,54 @@
 // components/MessageBubble.js
-import React, { useState } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Share, 
+import React, { useState, useEffect } from 'react'; // Import useEffect
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Share,
   Alert,
-  Animated,
   Dimensions
 } from 'react-native';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 const MessageBubble = ({ message }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
+  const [isSaved, setIsSaved] = useState(false); // State to track if message is saved
 
   if (!message || !message.text) {
     return null;
   }
 
+  // Check if the message is already saved when the component loads
+  useEffect(() => {
+    const checkIfSaved = async () => {
+      try {
+        const savedMessagesString = await AsyncStorage.getItem('@saved_messages');
+        if (savedMessagesString) {
+          const savedMessages = JSON.parse(savedMessagesString);
+          const messageIsSaved = savedMessages.some(savedMsg => savedMsg.id === message.id);
+          setIsSaved(messageIsSaved);
+        }
+      } catch (error) {
+        console.error('Failed to check saved status', error);
+      }
+    };
+    checkIfSaved();
+  }, [message.id]);
+
+
   const isUser = message.sender === 'user';
 
   const onShare = async () => {
     try {
-      await Share.share({ 
+      await Share.share({
         message: message.text,
         title: 'Shared from Carbeez AI'
       });
@@ -49,10 +69,37 @@ const MessageBubble = ({ message }) => {
     }
   };
 
-  const onSave = () => {
-    // You can implement save to favorites/bookmarks functionality here
-    Alert.alert('Saved', 'Message saved to your bookmarks');
+  const onSave = async () => {
+    try {
+      const savedMessagesString = await AsyncStorage.getItem('@saved_messages');
+      let messages = savedMessagesString ? JSON.parse(savedMessagesString) : [];
+      const existingIndex = messages.findIndex(savedMsg => savedMsg.id === message.id);
+
+      if (existingIndex > -1) {
+        // Message is already saved, so remove it
+        messages.splice(existingIndex, 1);
+        await AsyncStorage.setItem('@saved_messages', JSON.stringify(messages));
+        setIsSaved(false);
+        Alert.alert('Removed', 'Message removed from your bookmarks');
+      } else {
+        // Message is not saved, so add it
+        messages.push(message);
+        await AsyncStorage.setItem('@saved_messages', JSON.stringify(messages));
+        setIsSaved(true);
+        Alert.alert('Saved', 'Message saved to your bookmarks');
+      }
+    } catch (error) {
+      Alert.alert('Save Error', 'Failed to update bookmarks');
+    }
   };
+
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
 
   return (
     <View style={isUser ? styles.userMessageContainer : styles.botMessageContainer}>
@@ -67,17 +114,18 @@ const MessageBubble = ({ message }) => {
             <View style={styles.userTextContainer}>
               <Markdown style={userMarkdownStyles}>{message.text}</Markdown>
             </View>
+            <Text style={styles.timeTextUser}>{formatTime(message.timestamp)}</Text>
             {/* Glassmorphic overlay */}
             <View style={styles.userGlassOverlay} />
           </LinearGradient>
-          
+
           {/* User message actions - minimal */}
           <View style={styles.userActions}>
             <TouchableOpacity onPress={onCopy} style={styles.userActionBtn}>
-              <Feather 
-                name={copied ? "check" : "copy"} 
-                size={14} 
-                color={copied ? "#4ade80" : "rgba(255,255,255,0.7)"} 
+              <Feather
+                name={copied ? "check" : "copy"}
+                size={14}
+                color={copied ? "#4ade80" : "rgba(255,255,255,0.7)"}
               />
             </TouchableOpacity>
           </View>
@@ -93,11 +141,11 @@ const MessageBubble = ({ message }) => {
             <View style={styles.botTextContainer}>
               <Markdown style={botMarkdownStyles}>{message.text}</Markdown>
             </View>
-            
+            <Text style={styles.timeTextBot}>{formatTime(message.timestamp)}</Text>
             {/* Subtle border accent */}
             <View style={styles.botAccentBorder} />
           </LinearGradient>
-          
+
           {/* Enhanced action buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity onPress={onCopy} style={styles.actionButton}>
@@ -105,33 +153,39 @@ const MessageBubble = ({ message }) => {
                 colors={copied ? ['#dcfce7', '#f0fdf4'] : ['#f0fdfa', '#ecfdf5']}
                 style={styles.buttonGradient}
               >
-                <Feather 
-                  name={copied ? "check" : "copy"} 
-                  size={18} 
-                  color={copied ? "#059669" : "#00D1B2"} 
+                <Feather
+                  name={copied ? "check" : "copy"}
+                  size={18}
+                  color={copied ? "#059669" : "#00D1B2"}
                 />
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={onShare} style={styles.actionButton}>
               <LinearGradient
                 colors={shared ? ['#dbeafe', '#eff6ff'] : ['#f0f9ff', '#e0f2fe']}
                 style={styles.buttonGradient}
               >
-                <Feather 
-                  name={shared ? "check" : "share-2"} 
-                  size={18} 
-                  color={shared ? "#2563eb" : "#00a27a"} 
+                <Feather
+                  name={shared ? "check" : "share-2"}
+                  size={18}
+                  color={shared ? "#2563eb" : "#00a27a"}
                 />
               </LinearGradient>
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={onSave} style={styles.actionButton}>
               <LinearGradient
-                colors={['#fef3c7', '#fef7cd']}
+                // Change colors based on the isSaved state
+                colors={isSaved ? ['#facc15', '#eab308'] : ['#fef3c7', '#fef7cd']}
                 style={styles.buttonGradient}
               >
-                <Feather name="bookmark" size={18} color="#d97706" />
+                <Feather
+                  name="bookmark"
+                  size={18}
+                  // Change icon color based on the isSaved state
+                  color={isSaved ? "#ffffff" : "#d97706"}
+                />
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -141,6 +195,7 @@ const MessageBubble = ({ message }) => {
   );
 };
 
+// ... (userMarkdownStyles and botMarkdownStyles remain the same)
 // Enhanced markdown styles for user messages
 const userMarkdownStyles = {
   body: {
@@ -361,7 +416,6 @@ const botMarkdownStyles = {
     fontSize: 15,
   },
 };
-
 const styles = StyleSheet.create({
   userMessageContainer: {
     alignItems: 'flex-end',
@@ -468,6 +522,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 44,
     minHeight: 44,
+  },
+  timeTextUser: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 5,
+  },
+  timeTextBot: {
+    color: '#9ca3af',
+    fontSize: 12,
+    textAlign: 'right',
+    marginTop: 5,
   },
 });
 

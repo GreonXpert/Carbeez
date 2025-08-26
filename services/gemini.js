@@ -12,7 +12,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Replace this with your actual API key for testing.
 // For production, use environment variables with Expo.
 const API_KEY = "AIzaSyA0aZd6xuIqGrItq9CeN2ZCHOZu_8SKjrM";
-
+                
 if (!API_KEY || API_KEY === "YOUR_GEMINI_API_KEY") {
   console.warn("Please add your Gemini API Key to services/gemini.js");
 }

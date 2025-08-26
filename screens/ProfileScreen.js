@@ -65,7 +65,7 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#00D1B2" />
-      
+
       {/* Header with Gradient Background */}
       <LinearGradient
         colors={['#00D1B2', '#00a27a', '#008a66']}
@@ -74,7 +74,7 @@ const ProfileScreen = () => {
         style={styles.headerGradient}
       >
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
@@ -100,14 +100,14 @@ const ProfileScreen = () => {
               <Feather name="camera" size={16} color="#00D1B2" />
             </TouchableOpacity>
           </View>
-          
+
           <Text style={styles.userName}>{userData?.name || 'John Doe'}</Text>
           <Text style={styles.userEmail}>{userData?.email || 'john.doe@example.com'}</Text>
           <View style={styles.userBadge}>
             <Text style={styles.userRole}>Premium Member</Text>
           </View>
-          
-          
+
+
         </View>
       </LinearGradient>
 
@@ -116,28 +116,28 @@ const ProfileScreen = () => {
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsRow}>
-            <QuickAction 
-              icon="settings" 
-              label="Settings" 
-              color="#6366f1" 
-              onPress={() => navigation.navigate('Settings')}
+            <QuickAction
+              icon="settings"
+              label="Settings"
+              color="#6366f1"
+              onPress={() => navigation.navigate('PersonalInfo')}
             />
-            <QuickAction 
-              icon="bookmark" 
-              label="Saved" 
-              color="#f59e0b" 
-              onPress={() => navigation.navigate('Saved')}
+            <QuickAction
+              icon="bookmark"
+              label="Saved"
+              color="#f59e0b"
+              onPress={() => navigation.navigate('SavedMessages')}
             />
-            <QuickAction 
-              icon="heart" 
-              label="Liked" 
-              color="#ef4444" 
+            <QuickAction
+              icon="heart"
+              label="Liked"
+              color="#ef4444"
               onPress={() => navigation.navigate('Liked')}
             />
-            <QuickAction 
-              icon="share-2" 
-              label="Share" 
-              color="#8b5cf6" 
+            <QuickAction
+              icon="share-2"
+              label="Share"
+              color="#8b5cf6"
               onPress={() => navigation.navigate('Share')}
             />
           </View>
@@ -146,62 +146,62 @@ const ProfileScreen = () => {
         {/* Menu Options with Modern Cards */}
         <View style={styles.menuContainer}>
           <Text style={styles.sectionTitle}>Account & Settings</Text>
-          
+
           <View style={styles.menuCard}>
-            <ProfileOption 
-              icon="person-outline" 
-              title="Personal Information" 
+            <ProfileOption
+              icon="person-outline"
+              title="Personal Information"
               subtitle="Update your profile details"
               iconBg="#00D1B2"
-              onPress={() => navigation.navigate('PersonalInfo')} 
+              onPress={() => navigation.navigate('PersonalInfo')}
             />
             <View style={styles.divider} />
-            
-           
-            
-            <ProfileOption 
-              icon="notifications-outline" 
-              title="Notifications" 
+
+
+
+            <ProfileOption
+              icon="notifications-outline"
+              title="Notifications"
               subtitle="Configure alert preferences"
               iconBg="#f59e0b"
-              onPress={() => navigation.navigate('Notifications')} 
+              onPress={() => navigation.navigate('Notifications')}
             />
             <View style={styles.divider} />
-            
-            <ProfileOption 
-              icon="card-outline" 
-              title="Payment Methods" 
+
+            <ProfileOption
+              icon="card-outline"
+              title="Payment Methods"
               subtitle="Manage billing information"
               iconBg="#10b981"
-              onPress={() => navigation.navigate('PaymentMethods')} 
+              onPress={() => navigation.navigate('PaymentMethods')}
             />
           </View>
 
           <View style={styles.menuCard}>
-            <ProfileOption 
-              icon="help-circle-outline" 
-              title="Help Center" 
+            <ProfileOption
+              icon="help-circle-outline"
+              title="Help Center"
               subtitle="Get support and assistance"
               iconBg="#8b5cf6"
-              onPress={() => navigation.navigate('HelpCenter')} 
+              onPress={() => navigation.navigate('HelpCenter')}
             />
             <View style={styles.divider} />
-            
-            <ProfileOption 
-              icon="call-outline" 
-              title="Contact Us" 
+
+            <ProfileOption
+              icon="call-outline"
+              title="Contact Us"
               subtitle="Reach out to our team"
               iconBg="#ef4444"
-              onPress={() => navigation.navigate('ContactUs')} 
+              onPress={() => navigation.navigate('ContactUs')}
             />
             <View style={styles.divider} />
-            
-            <ProfileOption 
-              icon="information-circle-outline" 
-              title="About App" 
+
+            <ProfileOption
+              icon="information-circle-outline"
+              title="About App"
               subtitle="Version 2.1.0"
               iconBg="#6b7280"
-              onPress={() => navigation.navigate('About')} 
+              onPress={() => navigation.navigate('About')}
             />
           </View>
         </View>

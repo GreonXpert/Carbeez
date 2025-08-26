@@ -21,6 +21,8 @@ import HelpCenter from './components/HelpCenter';
 import ContactUs from './components/ContactUs';
 import About from './components/About';
 import Notifications from './components/Notifications';
+import SavedMessagesScreen from './screens/SavedMessagesScreen';
+import PaymentMethods from './components/PaymentMethods';
 
 const Stack = createStackNavigator();
 
@@ -74,6 +76,8 @@ export default function App() {
         <Stack.Screen name="ContactUs" component={ContactUs} />
         <Stack.Screen name="About" component={About}/>
         <Stack.Screen name="Notifications" component={Notifications} />
+        <Stack.Screen name="SavedMessages" component={SavedMessagesScreen} />
+        <Stack.Screen name="PaymentMethods" component={PaymentMethods} />
 
       </Stack.Navigator>
     </NavigationContainer>
