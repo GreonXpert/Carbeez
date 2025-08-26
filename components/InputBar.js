@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingBottom: Platform.OS === 'ios' ? 100 : 85, // FIXED: Space for floating tab bar
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

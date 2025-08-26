@@ -82,7 +82,7 @@ const ProfileScreen = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
           <TouchableOpacity style={styles.editButton}>
-            <Feather name="edit-3" size={20} color="#ffffff" />
+            <Feather name="edit-3" size={20} color="#ffffff"               onPress={() => navigation.navigate('PersonalInfo')} />
           </TouchableOpacity>
         </View>
 
