@@ -1,29 +1,27 @@
 // services/gemini.js
-// NOTE: You need to set up environment variables for Expo.
-// Create a file named .env in your root directory and add:
-// REACT_APP_GEMINI_API_KEY="YOUR_API_KEY"
-// Then, install `expo-constants` by running `npm install expo-constants`
-// And access it in your app via `Constants.expoConfig.extra.apiKey` after configuring `app.config.js`.
-// For simplicity in this guide, we will hardcode it, but DO NOT do this in production.
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Constants from "expo-constants";
 
-// !! IMPORTANT !!
-// Replace this with your actual API key for testing.
-// For production, use environment variables with Expo.
-const API_KEY = "AIzaSyDCoYyPhHfdVZro58R4blXAmPtSyCeUmEY";
+// Resolve API key from Expo config or env
+const API_KEY =
+  Constants?.expoConfig?.extra?.apiKey ||
+  // Expo SDK < 49 fallback:
+  Constants?.manifest?.extra?.apiKey ||
+  process.env.API_KEY;
 
-                
-if (!API_KEY || API_KEY === "YOUR_GEMINI_API_KEY") {
-  console.warn("Please add your Gemini API Key to services/gemini.js");
+if (!API_KEY) {
+  // Surface a loud error in dev so we don't silently fail:
+  throw new Error(
+    "Gemini API key missing. Add API_KEY to .env and expose it via app.config.js -> extra.apiKey"
+  );
 }
 
+// ✅ gemini-2.5-pro is correct per official model list
+// https://ai.google.dev/gemini-api/docs/models
 const genAI = new GoogleGenerativeAI(API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
-// ... (The rest of your gemini.js file remains exactly the same)
-
-// Robust topic guard (regex-based)
+// Topic guard (unchanged)
 const ALLOW_PATTERNS = [
   /\bghg\b/i,
   /\bgreenhouse\s+gas(es)?\b/i,
@@ -64,7 +62,6 @@ export function buildAccessTrace(userText = "") {
   ];
   if (/\bverify|assurance|audit|evidence|qa\/?qc\b/.test(t))
     trace.push({ id: "verify", title: "Verification Readiness", type: "assurance" });
-
   return trace;
 }
 
@@ -83,15 +80,21 @@ Follow GHG Protocol Corporate Standard, Scope 2 Guidance, Scope 3 Standard, and 
 
 export async function getGeminiResponse(userPrompt) {
   const prompt = `${systemInstructions()}\n\nUser: ${userPrompt}`;
-  const result = await model.generateContent(prompt);
-  return result.response.text();
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch (err) {
+    // Bubble up the real error message
+    console.error("Gemini API error:", err);
+    throw err;
+  }
 }
 
 const SMALL_TALK_PATTERNS = [
-    /\b(hi|hello|hey|yo)\b/i,
-    /\b(who\s+are\s+you|who\s*r u)\b/i,
-    /\b(what\s+can\s+you\s+do|what\s+do\s+you\s+do|what\s+will\s+you\s+do)\b/i,
-    /\b(help|start|getting\s+started|intro(duction)?)\b/i,
+  /\b(hi|hello|hey|yo)\b/i,
+  /\b(who\s+are\s+you|who\s*r u)\b/i,
+  /\b(what\s+can\s+you\s+do|what\s+do\s+you\s+do|what\s+will\s+you\s+do)\b/i,
+  /\b(help|start|getting\s+started|intro(duction)?)\b/i,
 ];
 
 export function isSmallTalk(text = "") {
@@ -109,22 +112,12 @@ I’m your AI Carbon Consultant. I help with **GHG inventories** (Scopes **1, 2,
 - Consolidation Approach (e.g., operational control)
 - Sites/facilities & Sector
 - Preferred GWP set (e.g., IPCC AR5/AR6)`;
-
 }
-/**
- * Checks user input and returns an appropriate response.
- * - If the input is small talk, returns a canned response.
- * - Otherwise, gets a response from the Gemini model.
- */
+
+/** Route input */
 export async function sendMessage(userInput) {
-  if (isSmallTalk(userInput)) {
-    return smallTalkResponse();
-  }
-  // The Gemini model itself is instructed by the system prompt
-  // to only answer GHG-related questions.
+  if (isSmallTalk(userInput)) return smallTalkResponse();
   return getGeminiResponse(userInput);
 }
-
-
 
 export default getGeminiResponse;

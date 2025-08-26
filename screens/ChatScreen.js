@@ -76,7 +76,6 @@ const ChatScreen = ({ route }) => {
     id: '1',
     text: `${greeting} I am your ${consultantType}. How can I assist you today?`,
     sender: 'bot',
-    timestamp: new Date().toISOString(),
    },
   ]);
  }, [consultantType, userName]);
@@ -103,7 +102,7 @@ const ChatScreen = ({ route }) => {
 
  const handleSend = async () => {
   if (input.trim().length === 0) return;
-  const userMessage = { id: Date.now().toString(), text: input, sender: 'user', timestamp: new Date().toISOString() };
+  const userMessage = { id: Date.now().toString(), text: input, sender: 'user' };
   setMessages((prev) => [...prev, userMessage]);
   setInput('');
   setIsLoading(true);
@@ -112,10 +111,10 @@ const ChatScreen = ({ route }) => {
 
   try {
    const response = await sendMessage(input, userName);
-   const botMessage = { id: Date.now().toString() + 'bot', text: response, sender: 'bot', timestamp: new Date().toISOString() };
+   const botMessage = { id: Date.now().toString() + 'bot', text: response, sender: 'bot' };
    setMessages((prev) => [...prev, botMessage]);
   } catch (error) {
-   const errorMessage = { id: Date.now().toString() + 'err', text: "Sorry, I'm having trouble connecting.", sender: 'bot', timestamp: new Date().toISOString() };
+   const errorMessage = { id: Date.now().toString() + 'err', text: "Sorry, I'm having trouble connecting.", sender: 'bot' };
    setMessages((prev) => [...prev, errorMessage]);
   } finally {
    clearTimeout(loadingTimerRef.current);
@@ -137,7 +136,7 @@ const ChatScreen = ({ route }) => {
  };
 
  // Pre-calculate padding values to avoid inline calculations
- const inputBarPadding = isKeyboardVisible
+ const inputBarPadding = isKeyboardVisible 
   ? (Platform.OS === 'ios' ? 10 : 8.5)  // When keyboard is open
   : (Platform.OS === 'ios' ? 100 : 85); // When keyboard is closed
 
@@ -171,7 +170,7 @@ const ChatScreen = ({ route }) => {
      style={styles.flatList}
      showsVerticalScrollIndicator={false}
     />
-
+    
     <View style={[styles.inputBarContainer, { paddingBottom: inputBarPadding }]}>
      <InputBar
       value={input}
