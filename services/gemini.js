@@ -7,16 +7,15 @@
 // For simplicity in this guide, we will hardcode it, but DO NOT do this in production.
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import Constants from 'expo-constants';
 
 // !! IMPORTANT !!
 // Replace this with your actual API key for testing.
 // For production, use environment variables with Expo.
-const API_KEY = Constants.expoConfig.extra.API_KEY;
+const API_KEY = "AIzaSyDCoYyPhHfdVZro58R4blXAmPtSyCeUmEY";
 
                 
 if (!API_KEY || API_KEY === "YOUR_GEMINI_API_KEY") {
-  console.warn("Please add your Gemini API Key to your .env file");
+  console.warn("Please add your Gemini API Key to services/gemini.js");
 }
 
 const genAI = new GoogleGenerativeAI(API_KEY);
