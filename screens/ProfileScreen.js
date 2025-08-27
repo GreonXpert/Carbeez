@@ -9,6 +9,7 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -30,6 +32,21 @@ const ProfileScreen = () => {
     };
     fetchUserData();
   }, []);
+     const handleLogout = () => {
+       Alert.alert("Logout", "Are you sure you want to logout?",
+         [
+           { text: "Cancel", style: "cancel" },
+           {
+             text: "OK", onPress: async () => {
+               try {
+                 await AsyncStorage.removeItem('@user_data');
+                 navigation.replace('Login');
+               } catch (e) { Alert.alert("Error", "Could not logout."); }
+             }
+           }
+         ]
+       );
+     };
 
   const ProfileOption = ({ icon, title, subtitle, onPress, iconBg }) => (
     <TouchableOpacity style={styles.modernOptionItem} onPress={onPress}>
@@ -208,7 +225,7 @@ const ProfileScreen = () => {
 
         {/* Logout Section */}
         <View style={styles.logoutContainer}>
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Feather name="log-out" size={20} color="#ef4444" />
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
