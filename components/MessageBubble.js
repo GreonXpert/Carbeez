@@ -1,4 +1,5 @@
 // components/MessageBubble.js
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -21,8 +22,8 @@ import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 
 const { width } = Dimensions.get('window');
 
-// Audio Wave Component for Playback
-const AudioPlaybackWave = ({ isPlaying, duration }) => {
+// ✅ SIMPLIFIED Audio Wave Component for User Messages Only
+const AudioPlaybackWave = ({ isPlaying }) => {
   const waveAnimations = useRef([...Array(8)].map(() => new Animated.Value(0.2))).current;
 
   useEffect(() => {
@@ -46,7 +47,6 @@ const AudioPlaybackWave = ({ isPlaying, duration }) => {
           ])
         );
       });
-
       animations.forEach(anim => anim.start());
       return () => animations.forEach(anim => anim.stop());
     } else {
@@ -61,18 +61,10 @@ const AudioPlaybackWave = ({ isPlaying, duration }) => {
           inputRange: [0, 1],
           outputRange: [3, 18 + (index % 3) * 2],
         });
-
         return (
           <Animated.View
             key={index}
-            style={[
-              styles.playbackWaveBar,
-              {
-                height,
-                backgroundColor: '#00D1B2',
-                opacity: 0.7,
-              }
-            ]}
+            style={[styles.playbackWaveBar, { height }]}
           />
         );
       })}
@@ -80,8 +72,8 @@ const AudioPlaybackWave = ({ isPlaying, duration }) => {
   );
 };
 
-// ✅ ULTIMATE FIX: Audio Message Component with GUARANTEED Full Volume
-const AudioMessage = ({ message, isUser }) => {
+// ✅ USER Audio Message Component (with timeline)
+const UserAudioMessage = ({ message, isUser }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [sound, setSound] = useState(null);
   const [playbackPosition, setPlaybackPosition] = useState(0);
@@ -110,33 +102,22 @@ const AudioMessage = ({ message, isUser }) => {
     return `${minutes.toString().padStart(1, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // ✅ NUCLEAR OPTION: Complete Audio Session Decontamination
   const decontaminateAudioSession = async () => {
     try {
       console.log('🧹 DECONTAMINATING audio session - NUCLEAR RESET...');
-      
-      // ✅ Step 1: Aggressive reset with multiple attempts
       for (let i = 0; i < 3; i++) {
         await Audio.setAudioModeAsync({
-          // ✅ CRITICAL: Force recording OFF
           allowsRecordingIOS: false,
-          
-          // ✅ Force playback routing to speakers/Bluetooth, NOT earpiece
           playsInSilentModeIOS: true,
           staysActiveInBackground: false,
-          
-          // ✅ Proper interruption handling for external devices
           interruptionModeIOS: InterruptionModeIOS.DuckOthers,
           shouldDuckAndroid: false,
           interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
           playThroughEarpieceAndroid: false,
         });
-        
-        // ✅ Wait between resets to ensure they take effect
         await new Promise(resolve => setTimeout(resolve, 150));
         console.log(`✅ Audio decontamination attempt ${i + 1}/3 completed`);
       }
-      
       console.log('🎵 Audio session FULLY DECONTAMINATED - Ready for FULL VOLUME playback');
     } catch (error) {
       console.error('❌ Audio decontamination failed:', error);
@@ -147,20 +128,14 @@ const AudioMessage = ({ message, isUser }) => {
     try {
       if (sound && !isUnloaded) {
         if (isPlaying) {
-          // Pause
           await sound.pauseAsync();
           setIsPlaying(false);
           if (positionIntervalRef.current) {
             clearInterval(positionIntervalRef.current);
           }
         } else {
-          // ✅ CRITICAL: Decontaminate audio session BEFORE resume
           await decontaminateAudioSession();
-          
-          // ✅ Force MAXIMUM volume
           await sound.setVolumeAsync(1.0);
-          
-          // Resume or replay
           const status = await sound.getStatusAsync();
           if (status.positionMillis === status.durationMillis || status.didJustFinish) {
             await sound.replayAsync();
@@ -171,41 +146,26 @@ const AudioMessage = ({ message, isUser }) => {
           startPositionTracking();
         }
       } else {
-        // Load and play new audio
         setIsLoading(true);
-        
-        // ✅ CRITICAL: Decontaminate audio session BEFORE loading
         await decontaminateAudioSession();
-
         console.log('🎵 Loading audio from URI:', message.uri);
-        
-        // ✅ Create sound with maximum volume settings
         const { sound: newSound } = await Audio.Sound.createAsync(
           { uri: message.uri },
-          { 
-            shouldPlay: false, // Don't auto-play, configure first
-            volume: 1.0,       // Maximum volume
+          {
+            shouldPlay: false,
+            volume: 1.0,
             rate: 1.0,
             shouldCorrectPitch: true,
             progressUpdateIntervalMillis: 100,
           }
         );
-        
         setSound(newSound);
         setIsUnloaded(false);
         setIsLoading(false);
-
-        // ✅ CRITICAL: Force MAXIMUM volume after creation
         await newSound.setVolumeAsync(1.0);
-        
-        // ✅ CRITICAL: One final decontamination before playback
         await decontaminateAudioSession();
-        
-        // ✅ NOW play at GUARANTEED FULL VOLUME
         await newSound.playAsync();
         setIsPlaying(true);
-
-        // Set up playback completion listener
         newSound.setOnPlaybackStatusUpdate((status) => {
           if (status.didJustFinish) {
             setIsPlaying(false);
@@ -220,7 +180,6 @@ const AudioMessage = ({ message, isUser }) => {
             setIsLoading(false);
           }
         });
-
         startPositionTracking(newSound);
       }
     } catch (error) {
@@ -228,7 +187,7 @@ const AudioMessage = ({ message, isUser }) => {
       setIsLoading(false);
       setIsPlaying(false);
       Alert.alert(
-        'Audio Playback Error', 
+        'Audio Playback Error',
         'Unable to play audio. Please:\n\n• Check device volume\n• Ensure Bluetooth/headphones are connected properly\n• Try disconnecting and reconnecting audio devices'
       );
     }
@@ -256,27 +215,29 @@ const AudioMessage = ({ message, isUser }) => {
   };
 
   return (
-    <View style={[styles.audioContainer, isUser && styles.userAudioContainer]}>
-      <TouchableOpacity 
+    <View style={styles.userAudioContainer}>
+      {/* Play Button */}
+      <TouchableOpacity
+        style={[styles.playButton, styles.userPlayButton]}
         onPress={togglePlayback}
-        style={[styles.playButton, isUser && styles.userPlayButton]}
         disabled={isLoading}
       >
         <LinearGradient
-          colors={isUser ? ['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)'] : ['#00D1B2', '#00a27a']}
+          colors={['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.7)']}
           style={styles.playButtonGradient}
         >
           <MaterialIcons
-            name={isLoading ? "hourglass-empty" : (isPlaying ? "pause" : "play-arrow")}
-            size={24}
-            color="#ffffff"
+            name={isLoading ? 'hourglass-empty' : isPlaying ? 'pause' : 'play-arrow'}
+            size={20}
+            color="#00D1B2"
           />
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* Audio Info */}
       <View style={styles.audioInfo}>
-        <AudioPlaybackWave isPlaying={isPlaying} duration={message.duration} />
-        <Text style={[styles.audioDuration, isUser && styles.userAudioDuration]}>
+        <AudioPlaybackWave isPlaying={isPlaying} />
+        <Text style={[styles.audioDuration, styles.userAudioDuration]}>
           {getDurationText()}
         </Text>
       </View>
@@ -284,7 +245,123 @@ const AudioMessage = ({ message, isUser }) => {
   );
 };
 
-// Rest of MessageBubble component (same as before)
+// ✅ BOT Audio Message Component (simplified - just icon + play/pause)
+const BotAudioMessage = ({ message }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [sound, setSound] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUnloaded, setIsUnloaded] = useState(false);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (sound && !isUnloaded) {
+        sound.unloadAsync()
+          .then(() => setIsUnloaded(true))
+          .catch(() => {});
+      }
+    };
+  }, [sound, isUnloaded]);
+
+  const decontaminateAudioSession = async () => {
+    try {
+      for (let i = 0; i < 3; i++) {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+          shouldDuckAndroid: false,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          playThroughEarpieceAndroid: false,
+        });
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+    } catch (error) {
+      console.error('❌ Audio decontamination failed:', error);
+    }
+  };
+
+  const togglePlayback = async () => {
+    try {
+      if (sound && !isUnloaded) {
+        if (isPlaying) {
+          await sound.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await decontaminateAudioSession();
+          await sound.setVolumeAsync(1.0);
+          await sound.playAsync();
+          setIsPlaying(true);
+        }
+      } else {
+        setIsLoading(true);
+        await decontaminateAudioSession();
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: message.uri },
+          {
+            shouldPlay: false,
+            volume: 1.0,
+            rate: 1.0,
+            shouldCorrectPitch: true,
+          }
+        );
+        setSound(newSound);
+        setIsUnloaded(false);
+        setIsLoading(false);
+        await newSound.setVolumeAsync(1.0);
+        await decontaminateAudioSession();
+        await newSound.playAsync();
+        setIsPlaying(true);
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+          }
+          if (status.error) {
+            console.error('🔊 Audio playback error:', status.error);
+            setIsPlaying(false);
+            setIsLoading(false);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error playing audio:', error);
+      setIsLoading(false);
+      setIsPlaying(false);
+      Alert.alert('Audio Playback Error', 'Unable to play audio.');
+    }
+  };
+
+  return (
+    <View style={styles.botAudioContainer}>
+      {/* Audio Icon */}
+      <MaterialIcons name="volume-up" size={18} color="#00D1B2" />
+      
+      {/* Play/Pause Button */}
+      <TouchableOpacity
+        style={styles.botPlayButton}
+        onPress={togglePlayback}
+        disabled={isLoading}
+      >
+        <LinearGradient
+          colors={['#00D1B2', '#00a27a']}
+          style={styles.botPlayButtonGradient}
+        >
+          <MaterialIcons
+            name={isLoading ? 'hourglass-empty' : isPlaying ? 'pause' : 'play-arrow'}
+            size={16}
+            color="#ffffff"
+          />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Audio Label */}
+      <Text style={styles.audioLabel}>Audio Response</Text>
+    </View>
+  );
+};
+
+// ✅ MAIN MESSAGE BUBBLE COMPONENT
 const MessageBubble = ({ message }) => {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
@@ -315,10 +392,9 @@ const MessageBubble = ({ message }) => {
 
   const onShare = async () => {
     try {
-      const shareContent = isAudioMessage 
+      const shareContent = isAudioMessage
         ? { url: message.uri, title: 'Shared Audio from Carbeez AI' }
         : { message: message.text, title: 'Shared from Carbeez AI' };
-      
       await Share.share(shareContent);
       setShared(true);
       setTimeout(() => setShared(false), 2000);
@@ -346,7 +422,7 @@ const MessageBubble = ({ message }) => {
       const savedMessagesString = await AsyncStorage.getItem('@saved_messages');
       let messages = savedMessagesString ? JSON.parse(savedMessagesString) : [];
       const existingIndex = messages.findIndex(savedMsg => savedMsg.id === message.id);
-
+      
       if (existingIndex > -1) {
         messages.splice(existingIndex, 1);
         await AsyncStorage.setItem('@saved_messages', JSON.stringify(messages));
@@ -371,101 +447,124 @@ const MessageBubble = ({ message }) => {
 
   return (
     <View style={isUser ? styles.userMessageContainer : styles.botMessageContainer}>
-      {isUser ? (
-        <View style={styles.userWrapper}>
-          <LinearGradient
-            colors={['#00D1B2', '#00a27a', '#008a66']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.bubble, styles.userBubble]}
-          >
-            <View style={styles.userTextContainer}>
-              {isAudioMessage ? (
-                <AudioMessage message={message} isUser={true} />
-              ) : (
-                <Markdown style={userMarkdownStyles}>{message.text}</Markdown>
-              )}
-            </View>
-            <Text style={styles.timeTextUser}>{formatTime(message.timestamp)}</Text>
-            <View style={styles.userGlassOverlay} />
-          </LinearGradient>
+      <View style={isUser ? styles.userWrapper : styles.botWrapper}>
+        
+        {/* Message Bubble */}
+        <View style={[styles.bubble, isUser ? styles.userBubble : styles.botBubble]}>
+          
+          {/* User Message Gradient Overlay */}
+          {isUser && (
+            <LinearGradient
+              colors={['#00D1B2', '#00a27a']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          
+          {/* Glass Overlay for User */}
+          {isUser && <View style={styles.userGlassOverlay} />}
+          
+          {/* Bot Accent Border */}
+          {!isUser && <View style={styles.botAccentBorder} />}
 
+          {/* Message Content */}
+          <View style={isUser ? styles.userTextContainer : styles.botTextContainer}>
+            {isAudioMessage ? (
+              isUser ? (
+                <UserAudioMessage message={message} isUser={isUser} />
+              ) : (
+                <BotAudioMessage message={message} />
+              )
+            ) : (
+              <Markdown
+                style={isUser ? userMarkdownStyles : botMarkdownStyles}
+              >
+                {message.text}
+              </Markdown>
+            )}
+          </View>
+        </View>
+
+        {/* Timestamp */}
+        <Text style={isUser ? styles.timeTextUser : styles.timeTextBot}>
+          {formatTime(message.timestamp)}
+        </Text>
+
+        {/* Transcription Info for Demo Mode */}
+        {message.transcription?.fallback && (
+          <Text style={styles.demoText}>• Demo mode</Text>
+        )}
+
+        {/* Action Buttons */}
+        {!isUser && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.actionButton} onPress={onCopy}>
+              <LinearGradient
+                colors={copied ? ['#10b981', '#059669'] : ['#f8fafc', '#e2e8f0']}
+                style={styles.buttonGradient}
+              >
+                <Feather
+                  name={copied ? 'check' : 'copy'}
+                  size={16}
+                  color={copied ? '#ffffff' : '#00D1B2'}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButton} onPress={onShare}>
+              <LinearGradient
+                colors={shared ? ['#3b82f6', '#2563eb'] : ['#f8fafc', '#e2e8f0']}
+                style={styles.buttonGradient}
+              >
+                <Feather
+                  name={shared ? 'check' : 'share'}
+                  size={16}
+                  color={shared ? '#ffffff' : '#00D1B2'}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.actionButton} onPress={onSave}>
+              <LinearGradient
+                colors={isSaved ? ['#f59e0b', '#d97706'] : ['#f8fafc', '#e2e8f0']}
+                style={styles.buttonGradient}
+              >
+                <Feather
+                  name={isSaved ? 'bookmark' : 'bookmark'}
+                  size={16}
+                  color={isSaved ? '#ffffff' : '#00D1B2'}
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* User Actions */}
+        {isUser && (
           <View style={styles.userActions}>
-            <TouchableOpacity onPress={onCopy} style={styles.userActionBtn}>
+            <TouchableOpacity style={styles.userActionBtn} onPress={onCopy}>
               <Feather
-                name={copied ? "check" : "copy"}
+                name={copied ? 'check' : 'copy'}
                 size={14}
-                color={copied ? "#4ade80" : "rgba(255,255,255,0.7)"}
+                color={copied ? '#10b981' : 'rgba(255,255,255,0.8)'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.userActionBtn} onPress={onShare}>
+              <Feather
+                name={shared ? 'check' : 'share'}
+                size={14}
+                color={shared ? '#3b82f6' : 'rgba(255,255,255,0.8)'}
               />
             </TouchableOpacity>
           </View>
-        </View>
-      ) : (
-        <View style={styles.botWrapper}>
-          <LinearGradient
-            colors={['#ffffff', '#fafafa', '#f8fafc']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.bubble, styles.botBubble]}
-          >
-            <View style={styles.botTextContainer}>
-              {isAudioMessage ? (
-                <AudioMessage message={message} isUser={false} />
-              ) : (
-                <Markdown style={botMarkdownStyles}>{message.text}</Markdown>
-              )}
-            </View>
-            <Text style={styles.timeTextBot}>{formatTime(message.timestamp)}</Text>
-            <View style={styles.botAccentBorder} />
-          </LinearGradient>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity onPress={onCopy} style={styles.actionButton}>
-              <LinearGradient
-                colors={copied ? ['#dcfce7', '#f0fdf4'] : ['#f0fdfa', '#ecfdf5']}
-                style={styles.buttonGradient}
-              >
-                <Feather
-                  name={copied ? "check" : "copy"}
-                  size={18}
-                  color={copied ? "#059669" : "#00D1B2"}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={onShare} style={styles.actionButton}>
-              <LinearGradient
-                colors={shared ? ['#dbeafe', '#eff6ff'] : ['#f0f9ff', '#e0f2fe']}
-                style={styles.buttonGradient}
-              >
-                <Feather
-                  name={shared ? "check" : "share-2"}
-                  size={18}
-                  color={shared ? "#2563eb" : "#00a27a"}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={onSave} style={styles.actionButton}>
-              <LinearGradient
-                colors={isSaved ? ['#facc15', '#eab308'] : ['#fef3c7', '#fef7cd']}
-                style={styles.buttonGradient}
-              >
-                <Feather
-                  name="bookmark"
-                  size={18}
-                  color={isSaved ? "#ffffff" : "#d97706"}
-                />
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
 };
 
-// ✅ ENHANCED MARKDOWN STYLES for User Messages (White on Gradient)
+// ✅ MARKDOWN STYLES (same as before but organized)
 const userMarkdownStyles = {
   body: {
     color: '#ffffff',
@@ -481,9 +580,6 @@ const userMarkdownStyles = {
     fontSize: 26,
     marginBottom: 14,
     marginTop: 8,
-    textShadowColor: 'rgba(0,0,0,0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   heading2: {
     color: '#ffffff',
@@ -492,120 +588,17 @@ const userMarkdownStyles = {
     fontSize: 22,
     marginBottom: 12,
     marginTop: 6,
-    textShadowColor: 'rgba(0,0,0,0.2)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  heading3: {
-    color: '#ffffff',
-    fontFamily: 'System',
-    fontWeight: '600',
-    fontSize: 19,
-    marginBottom: 10,
-    marginTop: 4,
   },
   strong: {
     fontFamily: 'System',
     fontWeight: '700',
     color: '#e0f9f5',
   },
-  em: {
-    fontFamily: 'System',
-    fontStyle: 'italic',
-    color: '#ccfbf1',
-    fontWeight: '400',
-  },
-  list_item: {
-    color: '#ffffff',
-    marginBottom: 8,
-    fontSize: 16,
-    lineHeight: 22,
-    paddingLeft: 4,
-  },
-  ordered_list: {
-    marginVertical: 8,
-  },
-  bullet_list: {
-    marginVertical: 8,
-  },
-  code_inline: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    color: '#f0fdfa',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 15,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    fontWeight: '600',
-  },
-  code_block: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: '#ffffff',
-    padding: 18,
-    borderRadius: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-    marginVertical: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#e0f9f5',
-    shadowColor: 'rgba(0,0,0,0.2)',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  fence: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: '#ffffff',
-    padding: 18,
-    borderRadius: 14,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-    marginVertical: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#e0f9f5',
-  },
-  link: {
-    color: '#a7f3d0',
-    textDecorationLine: 'underline',
-    fontWeight: '600',
-  },
-  blockquote: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderLeftWidth: 5,
-    borderLeftColor: '#6ee7b7',
-    paddingLeft: 18,
-    paddingVertical: 12,
-    marginVertical: 10,
-    borderRadius: 10,
-    fontStyle: 'italic',
-  },
   paragraph: {
     marginVertical: 4,
   },
-  table: {
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 8,
-    marginVertical: 10,
-  },
-  th: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    color: '#ffffff',
-    fontWeight: '700',
-    padding: 12,
-    fontSize: 15,
-  },
-  td: {
-    color: '#ffffff',
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.2)',
-    fontSize: 15,
-  },
 };
 
-// ✅ ENHANCED MARKDOWN STYLES for Bot Messages (Dark on White)
 const botMarkdownStyles = {
   body: {
     color: '#1f2937',
@@ -621,9 +614,6 @@ const botMarkdownStyles = {
     fontSize: 26,
     marginBottom: 14,
     marginTop: 8,
-    textShadowColor: 'rgba(0,209,178,0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   heading2: {
     color: '#00a27a',
@@ -633,171 +623,234 @@ const botMarkdownStyles = {
     marginBottom: 12,
     marginTop: 6,
   },
-  heading3: {
-    color: '#008a66',
-    fontFamily: 'System',
-    fontWeight: '600',
-    fontSize: 19,
-    marginBottom: 10,
-    marginTop: 4,
-  },
   strong: {
     fontFamily: 'System',
     fontWeight: '700',
     color: '#00D1B2',
   },
-  em: {
-    fontFamily: 'System',
-    fontStyle: 'italic',
-    color: '#4b5563',
-    fontWeight: '400',
-  },
-  list_item: {
-    color: '#374151',
-    marginBottom: 10,
-    fontSize: 16,
-    paddingLeft: 6,
-    lineHeight: 22,
-  },
-  ordered_list: {
-    marginVertical: 8,
-  },
-  bullet_list: {
-    marginVertical: 8,
-  },
-  code_inline: {
-    backgroundColor: '#f0fdfa',
-    color: '#00D1B2',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 15,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    fontWeight: '600',
-    borderWidth: 1,
-    borderColor: '#ccfbf1',
-  },
-  code_block: {
-    backgroundColor: '#f8fafc',
-    color: '#00a27a',
-    padding: 20,
-    borderRadius: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-    marginVertical: 12,
-    borderWidth: 2,
-    borderColor: '#e0f9f5',
-    shadowColor: '#00D1B2',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  fence: {
-    backgroundColor: '#f8fafc',
-    color: '#00a27a',
-    padding: 20,
-    borderRadius: 16,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-    marginVertical: 12,
-    borderWidth: 2,
-    borderColor: '#e0f9f5',
-  },
-  link: {
-    color: '#00D1B2',
-    textDecorationLine: 'underline',
-    fontWeight: '600',
-  },
-  blockquote: {
-    backgroundColor: '#f0fdfa',
-    borderLeftWidth: 5,
-    borderLeftColor: '#00D1B2',
-    paddingLeft: 20,
-    paddingVertical: 15,
-    marginVertical: 12,
-    borderRadius: 12,
-    fontStyle: 'italic',
-    color: '#00796b',
-    shadowColor: '#00D1B2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
   paragraph: {
     marginVertical: 4,
   },
-  table: {
-    borderWidth: 2,
-    borderColor: '#e0f9f5',
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginVertical: 12,
-    backgroundColor: '#ffffff',
-  },
-  th: {
-    backgroundColor: '#f0fdfa',
-    color: '#00D1B2',
-    fontFamily: 'System',
-    fontWeight: '700',
-    padding: 14,
-    fontSize: 15,
-  },
-  td: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0fdfa',
-    color: '#374151',
-    fontSize: 15,
-  },
-  tr: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0f9f5',
-  },
-  textgroup: {
-    color: '#1f2937',
-  },
-  s: {
-    textDecorationLine: 'line-through',
-    color: '#9ca3af',
-  },
-  del: {
-    textDecorationLine: 'line-through',
-    color: '#9ca3af',
-  },
 };
 
-// Styles (same as before)
+// ✅ STYLES
 const styles = StyleSheet.create({
-  userMessageContainer: { alignItems: 'flex-end', marginVertical: 10, paddingHorizontal: 18 },
-  botMessageContainer: { alignItems: 'flex-start', marginVertical: 10, paddingHorizontal: 18 },
-  userWrapper: { alignItems: 'flex-end', maxWidth: '85%' },
-  botWrapper: { alignItems: 'flex-start', maxWidth: '90%' },
-  bubble: { borderRadius: 24, paddingHorizontal: 22, paddingVertical: 18, minWidth: '25%', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8, position: 'relative' },
-  userBubble: { borderBottomRightRadius: 8, shadowColor: '#00D1B2', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  botBubble: { borderBottomLeftRadius: 8, shadowColor: '#00D1B2', borderWidth: 2, borderColor: 'rgba(0, 209, 178, 0.1)' },
-  userTextContainer: { position: 'relative', zIndex: 2 },
-  botTextContainer: { position: 'relative', zIndex: 2 },
-  userGlassOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 24, borderBottomRightRadius: 8, zIndex: 1 },
-  botAccentBorder: { position: 'absolute', top: 0, left: 0, width: 4, height: '100%', backgroundColor: '#00D1B2', borderTopLeftRadius: 24, borderBottomLeftRadius: 8 },
-  userActions: { flexDirection: 'row', marginTop: 8, marginRight: 4 },
-  userActionBtn: { padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.1)' },
-  buttonContainer: { flexDirection: 'row', marginTop: 14, marginLeft: 8, gap: 10 },
-  actionButton: { borderRadius: 14, overflow: 'hidden', shadowColor: '#00D1B2', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
-  buttonGradient: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(0, 209, 178, 0.15)', alignItems: 'center', justifyContent: 'center', minWidth: 44, minHeight: 44 },
-  timeTextUser: { color: 'rgba(255,255,255,0.7)', fontSize: 12, textAlign: 'right', marginTop: 5 },
-  timeTextBot: { color: '#9ca3af', fontSize: 12, textAlign: 'right', marginTop: 5 },
-  audioContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 200 },
-  userAudioContainer: { justifyContent: 'flex-end' },
-  playButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
-  userPlayButton: { shadowColor: 'rgba(255,255,255,0.3)', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3 },
-  playButtonGradient: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 22 },
-  audioInfo: { flex: 1, alignItems: 'center', gap: 8 },
-  playbackWaveContainer: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', height: 20, gap: 2 },
-  playbackWaveBar: { width: 3, borderRadius: 2, minHeight: 3 },
-  audioDuration: { fontSize: 13, color: '#4b5563', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: '600' },
-  userAudioDuration: { color: 'rgba(255,255,255,0.8)' },
+  // Container Styles
+  userMessageContainer: {
+    alignItems: 'flex-end',
+    marginVertical: 8,
+    paddingHorizontal: 16,
+  },
+  botMessageContainer: {
+    alignItems: 'flex-start',
+    marginVertical: 8,
+    paddingHorizontal: 16,
+  },
+  userWrapper: {
+    alignItems: 'flex-end',
+    maxWidth: '85%',
+  },
+  botWrapper: {
+    alignItems: 'flex-start',
+    maxWidth: '90%',
+  },
+
+  // Bubble Styles
+  bubble: {
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    minWidth: '30%',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 6,
+    position: 'relative',
+  },
+  userBubble: {
+    borderBottomRightRadius: 6,
+    shadowColor: '#00D1B2',
+  },
+  botBubble: {
+    borderBottomLeftRadius: 6,
+    shadowColor: '#00D1B2',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 209, 178, 0.1)',
+  },
+
+  // Content Container Styles
+  userTextContainer: {
+    position: 'relative',
+    zIndex: 2,
+  },
+  botTextContainer: {
+    position: 'relative',
+    zIndex: 2,
+  },
+  userGlassOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+    zIndex: 1,
+  },
+  botAccentBorder: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 4,
+    height: '100%',
+    backgroundColor: '#00D1B2',
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 6,
+  },
+
+  // Audio Styles - User
+  userAudioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 180,
+  },
+  playButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  userPlayButton: {
+    shadowColor: 'rgba(255,255,255,0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  playButtonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+  },
+  audioInfo: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  playbackWaveContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    height: 16,
+    gap: 2,
+  },
+  playbackWaveBar: {
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    minHeight: 2,
+  },
+  audioDuration: {
+    fontSize: 12,
+    color: '#4b5563',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: '600',
+  },
+  userAudioDuration: {
+    color: 'rgba(255,255,255,0.9)',
+  },
+
+  // Audio Styles - Bot (Simplified)
+  botAudioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  botPlayButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  botPlayButtonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  audioLabel: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+
+  // Time and Action Styles
+  timeTextUser: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    textAlign: 'right',
+    marginTop: 4,
+  },
+  timeTextBot: {
+    color: '#9ca3af',
+    fontSize: 11,
+    textAlign: 'left',
+    marginTop: 4,
+  },
+  demoText: {
+    color: '#f59e0b',
+    fontSize: 11,
+    textAlign: 'left',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+
+  // Action Button Styles
+  userActions: {
+    flexDirection: 'row',
+    marginTop: 6,
+    marginRight: 4,
+    gap: 8,
+  },
+  userActionBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    marginTop: 10,
+    marginLeft: 8,
+    gap: 8,
+  },
+  actionButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonGradient: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 36,
+    minHeight: 36,
+  },
 });
 
 export default MessageBubble;

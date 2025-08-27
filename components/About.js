@@ -21,28 +21,21 @@ const { width, height } = Dimensions.get('window');
 
 const teamMembers = [
   {
-    name: 'Dr. Sarah Chen',
+    name: 'Mohamed Fazil M',
     role: 'Chief Technology Officer',
-    expertise: 'AI & Machine Learning',
+    expertise: 'Software engineer & Machine Learning ',
     icon: 'cpu',
     color: '#00D1B2'
   },
   {
-    name: 'Michael Rodriguez',
-    role: 'Lead Carbon Analyst',
+    name: 'Adhil Farhan',
+    role: 'Cheif Executive Officer',
     expertise: 'Environmental Science',
-    icon: 'leaf',
+    icon: 'eco',
     color: '#00a27a'
   },
   {
-    name: 'Emma Thompson',
-    role: 'UX Design Director',
-    expertise: 'Human-Centered Design',
-    icon: 'palette',
-    color: '#6366f1'
-  },
-  {
-    name: 'David Kim',
+    name: 'Daniel',
     role: 'Data Science Lead',
     expertise: 'Climate Analytics',
     icon: 'trending-up',

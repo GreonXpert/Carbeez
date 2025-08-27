@@ -39,7 +39,6 @@ const ChatScreen = ({ route }) => {
     const initializeAudioSession = async () => {
       try {
         console.log('🔧 Initializing OPTIMAL audio session...');
-        
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false, // CRITICAL: Start in playback mode
           playsInSilentModeIOS: true,
@@ -49,7 +48,6 @@ const ChatScreen = ({ route }) => {
           interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
           playThroughEarpieceAndroid: false,
         });
-        
         console.log('✅ Audio session initialized for FULL VOLUME playback');
       } catch (error) {
         console.error('❌ Failed to initialize audio session:', error);
@@ -65,6 +63,7 @@ const ChatScreen = ({ route }) => {
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       () => setKeyboardVisible(true)
     );
+
     const keyboardDidHideListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       () => setKeyboardVisible(false)
@@ -88,6 +87,7 @@ const ChatScreen = ({ route }) => {
         console.error("Failed to load user data.", e);
       }
     };
+
     fetchUserData();
   }, []);
 
@@ -104,112 +104,94 @@ const ChatScreen = ({ route }) => {
   }, [consultantType, userName]);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?",
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "OK", onPress: async () => {
+          try {
+            await AsyncStorage.removeItem('@user_data');
+            navigation.replace('Login');
+          } catch (e) { Alert.alert("Error", "Could not logout."); }
+        }
+      }
+    ]);
+  };
+
+  const handleClearChat = () => {
+    Alert.alert(
+      "Clear Chat",
+      "Are you sure you want to clear all messages? This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "OK", onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('@user_data');
-              navigation.replace('Login');
-            } catch (e) { Alert.alert("Error", "Could not logout."); }
+          text: "Clear",
+          style: "destructive",
+          onPress: () => {
+            const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
+            setMessages([
+              {
+                id: '1',
+                text: `${greeting} I am your ${consultantType}. How can I assist you today?`,
+                sender: 'bot',
+                timestamp: new Date().getTime(),
+              },
+            ]);
           }
         }
       ]
     );
   };
 
-  const handleClearChat = () => {
-  Alert.alert(
-    "Clear Chat",
-    "Are you sure you want to clear all messages? This action cannot be undone.",
-    [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: () => {
-          const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
-          setMessages([
-            {
-              id: '1',
-              text: `${greeting} I am your ${consultantType}. How can I assist you today?`,
-              sender: 'bot',
-              timestamp: new Date().getTime(),
-            },
-          ]);
-        }
+  const handleSaveChat = async () => {
+    try {
+      console.log('💾 Attempting to save chat with messages:', messages.length);
+      
+      if (!messages || messages.length <= 1) {
+        Alert.alert("No Chat to Save", "There are no messages to save in this conversation.");
+        return;
       }
-    ]
-  );
-};
 
-// ✅ CORRECTED: Save Chat Function in ChatScreen.js
-const handleSaveChat = async () => {
-  try {
-    // ✅ Debug: Check what messages we have
-    console.log('💾 Attempting to save chat with messages:', messages.length);
-    console.log('💾 Messages content:', messages);
-    
-    if (!messages || messages.length <= 1) {
-      Alert.alert("No Chat to Save", "There are no messages to save in this conversation.");
-      return;
+      const chatToSave = {
+        id: `chat_${Date.now()}`,
+        title: `Chat with ${consultantType}`,
+        messages: [...messages],
+        consultantType: consultantType,
+        timestamp: new Date().getTime(),
+        userName: userName,
+        messageCount: messages.length
+      };
+
+      const savedChatsString = await AsyncStorage.getItem('@saved_chats');
+      let savedChats = savedChatsString ? JSON.parse(savedChatsString) : [];
+      savedChats.push(chatToSave);
+      await AsyncStorage.setItem('@saved_chats', JSON.stringify(savedChats));
+
+      Alert.alert(
+        "Chat Saved!",
+        `Your conversation with ${consultantType} (${messages.length} messages) has been saved successfully.`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('❌ Error saving chat:', error);
+      Alert.alert("Save Error", "Failed to save chat. Please try again.");
     }
-
-    // ✅ Create chat object with all current messages
-    const chatToSave = {
-      id: `chat_${Date.now()}`,
-      title: `Chat with ${consultantType}`,
-      messages: [...messages], // ✅ Spread to ensure fresh copy
-      consultantType: consultantType,
-      timestamp: new Date().getTime(),
-      userName: userName,
-      messageCount: messages.length
-    };
-
-    console.log('💾 Chat object to save:', chatToSave);
-
-    // ✅ CRITICAL: Use different key '@saved_chats' (not '@saved_messages')
-    const savedChatsString = await AsyncStorage.getItem('@saved_chats');
-    let savedChats = savedChatsString ? JSON.parse(savedChatsString) : [];
-    
-    console.log('💾 Existing saved chats:', savedChats.length);
-
-    // ✅ Add new chat to array
-    savedChats.push(chatToSave);
-
-    // ✅ Save to dedicated chat storage key
-    await AsyncStorage.setItem('@saved_chats', JSON.stringify(savedChats));
-    
-    console.log('✅ Chat saved successfully!');
-
-    Alert.alert(
-      "Chat Saved!",
-      `Your conversation with ${consultantType} (${messages.length} messages) has been saved successfully.`,
-      [{ text: "OK" }]
-    );
-
-  } catch (error) {
-    console.error('❌ Error saving chat:', error);
-    Alert.alert("Save Error", "Failed to save chat. Please try again.");
-  }
-};
-
+  };
 
   const handleProfile = () => {
     navigation.dispatch(CommonActions.navigate({ name: 'Profile' }));
   };
 
+  // ✅ UPDATED: Handle text messages with new response format
   const handleSend = async () => {
     if (input.trim().length === 0) return;
-    
+
     const userMessage = {
       id: Date.now().toString(),
       text: input,
       sender: 'user',
       timestamp: new Date().getTime(),
     };
-    
+
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
@@ -217,18 +199,31 @@ const handleSaveChat = async () => {
     loadingTimerRef.current = setTimeout(() => setThinkingStage(2), 2000);
 
     try {
+      // ✅ NEW: Handle updated response format
       const response = await sendMessage(input, userName, selectedLanguage);
+      
       const botMessage = {
         id: Date.now().toString() + 'bot',
-        text: response,
+        text: response.text || response, // Handle both old and new format
         sender: 'bot',
         timestamp: new Date().getTime(),
+        language: response.language || 'en',
+        // Handle any additional response data
+        ...(response.transcription && { transcription: response.transcription })
       };
+
       setMessages((prev) => [...prev, botMessage]);
+      
+      // Update selected language if detected
+      if (response.language && response.language !== selectedLanguage) {
+        setSelectedLanguage(response.language);
+      }
+      
     } catch (error) {
+      console.error('❌ Send message error:', error);
       const errorMessage = {
         id: Date.now().toString() + 'err',
-        text: "Sorry, I'm having trouble connecting.",
+        text: "Sorry, I'm having trouble connecting. Please try again.",
         sender: 'bot',
         timestamp: new Date().getTime(),
       };
@@ -240,28 +235,93 @@ const handleSaveChat = async () => {
     }
   };
 
-  // ✅ CRITICAL FIX: Aggressive audio session reset after recording
- const handleAudioMessage = async (audioData) => {
+  // ✅ UPDATED: Handle audio messages with new response format
+// ✅ UPDATED: Handle audio messages with separate audio and text responses
+const handleAudioMessage = async (audioData) => {
   try {
-    const audioMessage = {
+    // Add user's audio message to chat
+    const userAudioMessage = {
       ...audioData,
       timestamp: new Date().getTime(),
     };
-    
-    setMessages((prev) => [...prev, audioMessage]);
-    console.log('🎵 Audio message added:', audioData);
-    
-    // ✅ IMMEDIATE NUCLEAR DECONTAMINATION after recording
+    setMessages((prev) => [...prev, userAudioMessage]);
+    console.log('🎵 User audio message added:', audioData);
+
+    // Show thinking state
+    setIsLoading(true);
+    setThinkingStage(1);
+    loadingTimerRef.current = setTimeout(() => setThinkingStage(2), 2000);
+
+    // ✅ Process audio input through updated sendMessage
+    const response = await sendMessage(audioData, userName, selectedLanguage);
+
+    // ✅ NEW: Create TWO separate bot messages
+    const baseTimestamp = new Date().getTime();
+
+    // 1️⃣ FIRST: Audio response message (if audio was generated)
+    if (response.isAudio && response.audioUri) {
+      const botAudioMessage = {
+        id: baseTimestamp.toString() + 'bot_audio',
+        type: 'audio',
+        uri: response.audioUri,
+        duration: response.duration || 0,
+        sender: 'bot',
+        timestamp: baseTimestamp,
+        language: response.language || 'en',
+        // Clean text for audio message (remove transcription prefix)
+        text: response.text.replace(/🎤.*?\n\n/g, '').trim(),
+        transcription: response.transcription
+      };
+      setMessages((prev) => [...prev, botAudioMessage]);
+      console.log('🔊 Bot audio response added');
+    }
+
+    // 2️⃣ SECOND: Text response message (always shown)
+    const botTextMessage = {
+      id: (baseTimestamp + 1).toString() + 'bot_text',
+      text: response.text,
+      sender: 'bot',
+      timestamp: baseTimestamp + 100, // Slightly later timestamp
+      language: response.language || 'en',
+      transcription: response.transcription
+    };
+    setMessages((prev) => [...prev, botTextMessage]);
+    console.log('💬 Bot text response added');
+
+    // Update language preference
+    if (response.language && response.language !== selectedLanguage) {
+      setSelectedLanguage(response.language);
+    }
+
+    console.log('🤖 Bot responses added:', {
+      audioResponse: !!response.audioUri,
+      textResponse: true,
+      language: response.language,
+      hasTranscription: !!response.transcription
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to process audio message:', error);
+    const errorMessage = {
+      id: Date.now().toString() + 'err',
+      text: "Sorry, I couldn't process your audio message. Please try again.",
+      sender: 'bot',
+      timestamp: new Date().getTime(),
+    };
+    setMessages((prev) => [...prev, errorMessage]);
+  } finally {
+    clearTimeout(loadingTimerRef.current);
+    setIsLoading(false);
+    setThinkingStage(0);
+
+    // ✅ CRITICAL: Audio session reset (unchanged)
     console.log('🧹 NUCLEAR audio session decontamination after recording...');
-    
-    // Multiple aggressive resets with longer delays
     const decontaminationSequence = [100, 300, 500, 750, 1000];
-    
     decontaminationSequence.forEach((delay, index) => {
       setTimeout(async () => {
         try {
           await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false, // CRITICAL
+            allowsRecordingIOS: false,
             playsInSilentModeIOS: true,
             staysActiveInBackground: false,
             interruptionModeIOS: InterruptionModeIOS.DuckOthers,
@@ -270,7 +330,6 @@ const handleSaveChat = async () => {
             playThroughEarpieceAndroid: false,
           });
           console.log(`✅ Decontamination wave ${index + 1}/5 completed`);
-          
           if (index === decontaminationSequence.length - 1) {
             console.log('🎵 AUDIO SESSION FULLY DECONTAMINATED - All audio will now play at FULL VOLUME');
           }
@@ -279,12 +338,9 @@ const handleSaveChat = async () => {
         }
       }, delay);
     });
-    
-  } catch (error) {
-    console.error('Failed to process audio message:', error);
-    Alert.alert('Error', 'Failed to process audio message');
   }
 };
+
 
   useEffect(() => {
     if (flatListRef.current) {
@@ -293,39 +349,37 @@ const handleSaveChat = async () => {
   }, [messages, isLoading]);
 
   const renderThinkingItem = () => {
-    if (thinkingStage === 1) return <SearchGifBubble />;
-    if (thinkingStage === 2) return <ThinkingBubble />;
+    if (thinkingStage === 1) return <ThinkingBubble />;
+    if (thinkingStage === 2) return <SearchGifBubble />;
     return null;
   };
 
-  const inputBarPadding = isKeyboardVisible 
+  const inputBarPadding = isKeyboardVisible
     ? (Platform.OS === 'ios' ? 10 : 8.5)
     : (Platform.OS === 'ios' ? 100 : 85);
 
   return (
     <View style={styles.screenContainer}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <LinearGradient
-        colors={['#eefcf9', '#ffffff']}
+        colors={['#f0f9ff', '#e0f2fe', '#f0fdfa']}
         style={styles.gradientBackground}
-        pointerEvents="none"
       />
+      
       <GlassmorphicHeader
         title={consultantType}
         onProfilePress={handleProfile}
-        onLogoutPress={handleLogout}
-        onClearChat={handleClearChat}    // ✅ NEW
-  onSaveChat={handleSaveChat}      // ✅ NEW
+        onClearChat={handleClearChat}
+        onSaveChat={handleSaveChat}
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 48 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <FlatList
           ref={flatListRef}
-          data={[...messages, ...(isLoading ? [{ id: 'thinking' }] : [])]}
+          data={isLoading ? [...messages, { id: 'thinking' }] : messages}
           renderItem={({ item }) =>
             item.id === 'thinking' ? renderThinkingItem() : <MessageBubble message={item} />
           }
@@ -334,17 +388,14 @@ const handleSaveChat = async () => {
           style={styles.flatList}
           showsVerticalScrollIndicator={false}
         />
-        
+
         <View style={[styles.inputBarContainer, { paddingBottom: inputBarPadding }]}>
           <InputBar
             value={input}
             onChangeText={setInput}
             onSend={handleSend}
-            onAudioMessage={handleAudioMessage}
             isLoading={isLoading}
-            selectedLanguage={selectedLanguage}
-            onLanguageChange={setSelectedLanguage}
-            showLanguageSelector={true}
+            onAudioMessage={handleAudioMessage}
           />
         </View>
       </KeyboardAvoidingView>

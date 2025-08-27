@@ -15,7 +15,10 @@ export default {
       backgroundColor: "#ffffff"
     },
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+       infoPlist: {
+        "NSMicrophoneUsageDescription": "This app uses the microphone to allow you to send voice messages."
+      }
     },
     android: {
       adaptiveIcon: {
@@ -25,11 +28,15 @@ export default {
       "package": "com.fazil.carbeezmobile",
       "edgeToEdgeEnabled": true
     },
+     permissions: [
+      "android.permission.RECORD_AUDIO"
+    ],
     web: {
       favicon: "./assets/favicon.png"
     },
     extra: {
       apiKey: process.env.API_KEY, // This will now work correctly
+      googleCloudCredentials: process.env.GOOGLE_CLOUD_CREDENTIALS,
       eas: {
         projectId: "f0045a1f-2e6e-464a-8bed-6326d7e9f6d8"
       }
