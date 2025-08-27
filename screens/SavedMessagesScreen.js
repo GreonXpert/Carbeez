@@ -15,28 +15,41 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Markdown from 'react-native-markdown-display';
+import ConversationViewModal from '../components/ConversationViewModal'; // ✅ NEW: Import modal
 
 const { width, height } = Dimensions.get('window');
 
 const SavedMessagesScreen = () => {
   const [savedMessages, setSavedMessages] = useState([]);
+  const [savedChats, setSavedChats] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null); // ✅ NEW: Modal state
+  const [modalVisible, setModalVisible] = useState(false); // ✅ NEW: Modal visibility
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
   useEffect(() => {
-    const fetchSavedMessages = async () => {
+    const fetchSavedData = async () => {
       try {
+        // Fetch individual saved messages
         const messagesString = await AsyncStorage.getItem('@saved_messages');
         if (messagesString) {
           setSavedMessages(JSON.parse(messagesString));
         }
+
+        // Fetch saved complete chats
+        const chatsString = await AsyncStorage.getItem('@saved_chats');
+        if (chatsString) {
+          const chats = JSON.parse(chatsString);
+          console.log('📱 Loaded saved chats:', chats.length);
+          setSavedChats(chats);
+        }
       } catch (error) {
-        console.error('Error fetching saved messages:', error);
+        console.error('Error fetching saved data:', error);
       }
     };
 
     if (isFocused) {
-      fetchSavedMessages();
+      fetchSavedData();
     }
   }, [isFocused]);
 
@@ -58,31 +71,104 @@ const SavedMessagesScreen = () => {
     await AsyncStorage.setItem('@saved_messages', JSON.stringify(updatedMessages));
   };
 
-  const renderItem = ({ item, index }) => (
+  const deleteChat = async (chatId) => {
+    const updatedChats = savedChats.filter(chat => chat.id !== chatId);
+    setSavedChats(updatedChats);
+    await AsyncStorage.setItem('@saved_chats', JSON.stringify(updatedChats));
+  };
+
+  // ✅ NEW: Handle conversation view
+  const viewConversation = (conversation) => {
+    setSelectedConversation(conversation);
+    setModalVisible(true);
+  };
+
+  // ✅ NEW: Close modal
+  const closeModal = () => {
+    setModalVisible(false);
+    setSelectedConversation(null);
+  };
+
+  // ✅ UPDATED: Render saved chat item with view button
+  const renderChatItem = ({ item, index }) => (
+    <View style={styles.messageCard}>
+      {/* Chat Header */}
+      <View style={styles.messageHeader}>
+        <View style={styles.messageIcon}>
+          <MaterialIcons name="chat" size={16} color="#00D1B2" />
+        </View>
+        <Text style={styles.messageIndex} numberOfLines={1}>{item.title}</Text>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => deleteChat(item.id)}
+        >
+          <MaterialIcons name="delete" size={16} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Chat Content Preview */}
+      <View style={styles.messageContent}>
+        <Text style={styles.chatPreview}>
+          {item.messageCount} messages with {item.consultantType}
+        </Text>
+        <Text style={styles.chatDetails}>
+          User: {item.userName}
+        </Text>
+      </View>
+
+      {/* ✅ NEW: Action Buttons */}
+      <View style={styles.chatActions}>
+        <TouchableOpacity
+          style={styles.viewButton}
+          onPress={() => viewConversation(item)}
+          activeOpacity={0.7}
+        >
+          <LinearGradient
+            colors={['#00D1B2', '#00a27a']}
+            style={styles.viewButtonGradient}
+          >
+            <MaterialIcons name="visibility" size={16} color="#ffffff" />
+            <Text style={styles.viewButtonText}>View Full Chat</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
+
+      {/* Chat Footer */}
+      <View style={styles.messageFooter}>
+        <View style={styles.timestampContainer}>
+          <MaterialIcons name="access-time" size={12} color="#6b7280" />
+          <Text style={styles.timestamp}>{formatDateTime(item.timestamp)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  // Render individual message item (unchanged)
+  const renderMessageItem = ({ item, index }) => (
     <View style={styles.messageCard}>
       {/* Message Header */}
       <View style={styles.messageHeader}>
         <View style={styles.messageIcon}>
-          <MaterialIcons name="bookmark" size={20} color="#00D1B2" />
+          <MaterialIcons name="message" size={16} color="#00D1B2" />
         </View>
         <Text style={styles.messageIndex}>#{index + 1}</Text>
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={() => deleteMessage(item.id)}
         >
-          <MaterialIcons name="delete-outline" size={20} color="#ef4444" />
+          <MaterialIcons name="delete" size={16} color="#ef4444" />
         </TouchableOpacity>
       </View>
 
       {/* Message Content */}
       <View style={styles.messageContent}>
-        <Markdown style={markdownStyles}>{item.text}</Markdown>
+        <Markdown style={markdownStyles}>{item.text || 'No content'}</Markdown>
       </View>
 
       {/* Message Footer */}
       <View style={styles.messageFooter}>
         <View style={styles.timestampContainer}>
-          <MaterialIcons name="schedule" size={14} color="#6b7280" />
+          <MaterialIcons name="access-time" size={12} color="#6b7280" />
           <Text style={styles.timestamp}>{formatDateTime(item.timestamp)}</Text>
         </View>
       </View>
@@ -96,12 +182,12 @@ const SavedMessagesScreen = () => {
           colors={['#00D1B2', '#00a27a']}
           style={styles.emptyIconGradient}
         >
-          <MaterialIcons name="bookmark-border" size={64} color="#ffffff" />
+          <MaterialIcons name="chat-bubble-outline" size={48} color="#ffffff" />
         </LinearGradient>
       </View>
-      <Text style={styles.emptyTitle}>No Saved Messages</Text>
+      <Text style={styles.emptyTitle}>No Saved Data</Text>
       <Text style={styles.emptySubtitle}>
-        Save important messages from your conversations{'\n'}to access them anytime here.
+        Save important messages or entire conversations{'\n'}to access them anytime here.
       </Text>
       <TouchableOpacity
         style={styles.startChattingButton}
@@ -119,45 +205,74 @@ const SavedMessagesScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with Gradient Background */}
       <LinearGradient
         colors={['#00D1B2', '#00a27a']}
         style={styles.headerGradient}
       >
-        <SafeAreaView>
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Saved Messages</Text>
-            <View style={styles.headerRight}>
-              <View style={styles.messageCountBadge}>
-                <Text style={styles.messageCountText}>{savedMessages.length}</Text>
-              </View>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
+          </TouchableOpacity>
+
+          <Text style={styles.headerTitle}>Saved Data</Text>
+
+          <View style={styles.headerRight}>
+            <View style={styles.messageCountBadge}>
+              <Text style={styles.messageCountText}>
+                {savedMessages.length + savedChats.length}
+              </Text>
             </View>
           </View>
-        </SafeAreaView>
+        </View>
       </LinearGradient>
 
       {/* Content */}
       <View style={styles.contentContainer}>
-        {savedMessages.length > 0 ? (
-          <FlatList
-            data={savedMessages}
-            renderItem={renderItem}
-            keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
-            contentContainerStyle={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
+        {savedMessages.length > 0 || savedChats.length > 0 ? (
+          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+            {/* Show Saved Chats First */}
+            {savedChats.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>💬 Saved Conversations</Text>
+                <FlatList
+                  data={savedChats}
+                  renderItem={renderChatItem}
+                  keyExtractor={(item) => item.id.toString()}
+                  scrollEnabled={false}
+                />
+              </>
+            )}
+
+            {/* Show Individual Messages */}
+            {savedMessages.length > 0 && (
+              <>
+                <Text style={styles.sectionTitle}>📝 Individual Messages</Text>
+                <FlatList
+                  data={savedMessages}
+                  renderItem={renderMessageItem}
+                  keyExtractor={(item) => item.id ? item.id.toString() : Math.random().toString()}
+                  scrollEnabled={false}
+                />
+              </>
+            )}
+          </ScrollView>
         ) : (
           <EmptyState />
         )}
       </View>
-    </View>
+
+      {/* ✅ NEW: Conversation View Modal */}
+      <ConversationViewModal
+        visible={modalVisible}
+        onClose={closeModal}
+        conversation={selectedConversation}
+      />
+    </SafeAreaView>
   );
 };
 
@@ -319,6 +434,52 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginLeft: 4,
     fontWeight: '500',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 12,
+    marginTop: 16,
+    paddingHorizontal: 4,
+  },
+  chatPreview: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00D1B2',
+    marginBottom: 4,
+  },
+  chatDetails: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  // ✅ NEW: Chat action styles
+  chatActions: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  viewButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  viewButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  viewButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyStateContainer: {
     flex: 1,

@@ -119,6 +119,83 @@ const ChatScreen = ({ route }) => {
     );
   };
 
+  const handleClearChat = () => {
+  Alert.alert(
+    "Clear Chat",
+    "Are you sure you want to clear all messages? This action cannot be undone.",
+    [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Clear",
+        style: "destructive",
+        onPress: () => {
+          const greeting = userName ? `Hello, ${userName}!` : 'Hello!';
+          setMessages([
+            {
+              id: '1',
+              text: `${greeting} I am your ${consultantType}. How can I assist you today?`,
+              sender: 'bot',
+              timestamp: new Date().getTime(),
+            },
+          ]);
+        }
+      }
+    ]
+  );
+};
+
+// ✅ CORRECTED: Save Chat Function in ChatScreen.js
+const handleSaveChat = async () => {
+  try {
+    // ✅ Debug: Check what messages we have
+    console.log('💾 Attempting to save chat with messages:', messages.length);
+    console.log('💾 Messages content:', messages);
+    
+    if (!messages || messages.length <= 1) {
+      Alert.alert("No Chat to Save", "There are no messages to save in this conversation.");
+      return;
+    }
+
+    // ✅ Create chat object with all current messages
+    const chatToSave = {
+      id: `chat_${Date.now()}`,
+      title: `Chat with ${consultantType}`,
+      messages: [...messages], // ✅ Spread to ensure fresh copy
+      consultantType: consultantType,
+      timestamp: new Date().getTime(),
+      userName: userName,
+      messageCount: messages.length
+    };
+
+    console.log('💾 Chat object to save:', chatToSave);
+
+    // ✅ CRITICAL: Use different key '@saved_chats' (not '@saved_messages')
+    const savedChatsString = await AsyncStorage.getItem('@saved_chats');
+    let savedChats = savedChatsString ? JSON.parse(savedChatsString) : [];
+    
+    console.log('💾 Existing saved chats:', savedChats.length);
+
+    // ✅ Add new chat to array
+    savedChats.push(chatToSave);
+
+    // ✅ Save to dedicated chat storage key
+    await AsyncStorage.setItem('@saved_chats', JSON.stringify(savedChats));
+    
+    console.log('✅ Chat saved successfully!');
+
+    Alert.alert(
+      "Chat Saved!",
+      `Your conversation with ${consultantType} (${messages.length} messages) has been saved successfully.`,
+      [{ text: "OK" }]
+    );
+
+  } catch (error) {
+    console.error('❌ Error saving chat:', error);
+    Alert.alert("Save Error", "Failed to save chat. Please try again.");
+  }
+};
+
+
   const handleProfile = () => {
     navigation.dispatch(CommonActions.navigate({ name: 'Profile' }));
   };
@@ -237,6 +314,8 @@ const ChatScreen = ({ route }) => {
         title={consultantType}
         onProfilePress={handleProfile}
         onLogoutPress={handleLogout}
+        onClearChat={handleClearChat}    // ✅ NEW
+  onSaveChat={handleSaveChat}      // ✅ NEW
       />
 
       <KeyboardAvoidingView

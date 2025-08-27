@@ -1,6 +1,6 @@
 // components/GlassmorphicHeader.js
 import React, { useState, useRef, useEffect } from 'react';
-import { 
+import {
   View,
   Text,
   StyleSheet,
@@ -22,6 +22,9 @@ const GlassmorphicHeader = ({
   avatar,
   onProfilePress = () => {},
   onLogoutPress = () => {},
+  onClearChat = () => {}, // ✅ Clear chat callback
+  onSaveChat = () => {},  // ✅ Save chat callback
+  onPersonalInfoPress = () => {}, // ✅ NEW: Personal Info navigation callback
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -42,9 +45,27 @@ const GlassmorphicHeader = ({
     setMenuVisible(false);
     onProfilePress && onProfilePress();
   };
+
   const handleLogout = () => {
     setMenuVisible(false);
     onLogoutPress && onLogoutPress();
+  };
+
+  // ✅ Clear chat handler
+  const handleClearChat = () => {
+    setMenuVisible(false);
+    onClearChat && onClearChat();
+  };
+
+  // ✅ Save chat handler
+  const handleSaveChat = () => {
+    setMenuVisible(false);
+    onSaveChat && onSaveChat();
+  };
+
+  // ✅ NEW: Personal Info handler
+  const handlePersonalInfo = () => {
+    onPersonalInfoPress && onPersonalInfoPress();
   };
 
   return (
@@ -52,52 +73,64 @@ const GlassmorphicHeader = ({
       <View style={styles.headerOuter}>
         {/* GLASS GRADIENT FRAME */}
         <LinearGradient
-          colors={['rgba(0,209,178,0.6)', 'rgba(99,102,241,0.4)']}
-          start={{ x: 0.1, y: 0.2 }}
-          end={{ x: 1, y: 1 }}
+          colors={['rgba(0, 209, 178, 0.12)', 'rgba(0, 209, 178, 0.08)']}
           style={styles.gradientOutline}
         >
-          <BlurView intensity={95} tint="light" style={styles.blurPlate}>
+          <BlurView intensity={35} style={styles.blurPlate}>
             <View style={styles.innerContent}>
-              {/* Left – Avatar */}
-              <TouchableOpacity activeOpacity={0.7} style={styles.avatarWrapper} onPress={onProfilePress}>
-                <LinearGradient
-                  colors={['#00D1B2', '#6366F1']}
-                  style={styles.avatarRing}
-                >
-                  <View style={styles.avatarCircle}>
-                    {avatar ? (
-                      <>{avatar}</>
-                    ) : (
-                      <MaterialIcons name="person" size={28} color="#fff" />
-                    )}
+              {/* ✅ NEW: Left – Clickable Person Icon */}
+              <TouchableOpacity 
+                style={styles.avatarWrapper}
+                onPress={handleProfile}
+                activeOpacity={0.7}
+              >
+                {avatar ? (
+                  <View style={styles.avatarContainer}>
+                    {avatar}
                   </View>
-                </LinearGradient>
+                ) : (
+                  <LinearGradient
+                    colors={['#00D1B2', '#00a27a']}
+                    style={styles.avatarRing}
+                  >
+                    <View style={styles.avatarCircle}>
+                      <MaterialIcons name="person" size={22} color="#00D1B2" />
+                    </View>
+                  </LinearGradient>
+                )}
               </TouchableOpacity>
+
               {/* Middle – Title and Subtitle */}
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>{title}</Text>
-                {!!subtitle && 
-                  <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
-                }
+                {!!subtitle && (
+                  <Text style={styles.subtitle}>{subtitle}</Text>
+                )}
               </View>
-              {/* Right – Action */}
-              <TouchableOpacity style={styles.actionBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.75}>
-                <LinearGradient colors={['#00D1B2', '#00a27a']} style={styles.actionBtnCircle}>
-                  <MaterialIcons name="more-vert" size={24} color="#fff" />
+
+              {/* Right – Action Menu */}
+              <TouchableOpacity
+                style={styles.actionBtn}
+                onPress={() => setMenuVisible(true)}
+                activeOpacity={0.75}
+              >
+                <LinearGradient
+                  colors={['rgba(0, 209, 178, 0.15)', 'rgba(0, 209, 178, 0.08)']}
+                  style={styles.actionBtnCircle}
+                >
+                  <MaterialIcons name="more-vert" size={22} color="#00D1B2" />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
           </BlurView>
         </LinearGradient>
       </View>
-      
+
       {/* Animated Glassy Menu Modal */}
       <Modal
-        transparent
         visible={menuVisible}
-        animationType="fade"
-        statusBarTranslucent
+        transparent
+        animationType="none"
         onRequestClose={() => setMenuVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
@@ -105,30 +138,38 @@ const GlassmorphicHeader = ({
             <Animated.View
               style={[
                 styles.menuContainer,
-                { 
-                  transform: [
-                    { scale: scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1.0] }) },
-                    { translateY: scaleAnim.interpolate({ inputRange: [0, 1], outputRange: [-30, 0] }) }
-                  ],
-                  opacity: scaleAnim,
-                },
+                { transform: [{ scale: scaleAnim }] }
               ]}
             >
-              <View style={styles.menuGlass}>
-                <TouchableOpacity style={styles.menuItem} onPress={handleProfile} activeOpacity={0.7}>
-                  <LinearGradient colors={['#00D1B2', '#6366F1']} style={styles.menuIconCircle}>
-                    <MaterialIcons name="account-circle" size={24} color="#fff" />
-                  </LinearGradient>
-                  <Text style={styles.menuText}>Profile</Text>
-                </TouchableOpacity>
-                <View style={styles.menuDivider} />
-                <TouchableOpacity style={styles.menuItem} onPress={handleLogout} activeOpacity={0.7}>
-                  <View style={[styles.menuIconCircle, { backgroundColor: '#fff2f2' }]}>
-                    <MaterialIcons name="logout" size={22} color="#ef4444" />
-                  </View>
-                  <Text style={[styles.menuText, { color: '#EF4444' }]}>Logout</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <View style={styles.menuGlass}>
+                  
+
+                  <View style={styles.menuDivider} />
+
+                  {/* ✅ Clear Chat */}
+                  <TouchableOpacity style={styles.menuItem} onPress={handleClearChat}>
+                    <View style={styles.menuIconCircle}>
+                      <MaterialIcons name="delete-sweep" size={18} color="#ef4444" />
+                    </View>
+                    <Text style={[styles.menuText, { color: '#ef4444' }]}>Clear Chat</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.menuDivider} />
+
+                  {/* ✅ Save Chat */}
+                  <TouchableOpacity style={styles.menuItem} onPress={handleSaveChat}>
+                    <View style={styles.menuIconCircle}>
+                      <MaterialIcons name="save-alt" size={18} color="#22c55e" />
+                    </View>
+                    <Text style={[styles.menuText, { color: '#22c55e' }]}>Save Chat</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.menuDivider} />
+
+                
+                </View>
+              </TouchableWithoutFeedback>
             </Animated.View>
           </View>
         </TouchableWithoutFeedback>
@@ -166,6 +207,17 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     marginRight: 8,
+    // ✅ NEW: Added touch feedback styles
+    borderRadius: 23,
+    overflow: 'hidden',
+  },
+  avatarContainer: {
+    // ✅ NEW: Container for custom avatar
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarRing: {
     width: 46,
@@ -173,6 +225,12 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
+    // ✅ NEW: Added shadow for better visual feedback
+    shadowColor: '#00D1B2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   avatarCircle: {
     width: 38,
