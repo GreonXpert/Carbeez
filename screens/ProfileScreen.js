@@ -10,11 +10,15 @@ import {
   Dimensions,
   StatusBar,
   Alert,
+  Image,
+  Modal,
+  Animated,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +26,10 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [profileImageUri, setProfileImageUri] = useState(null);
+  // ✅ NEW: Add state for image viewer modal
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [imageZoom, setImageZoom] = useState(new Animated.Value(0));
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -32,21 +40,175 @@ const ProfileScreen = () => {
     };
     fetchUserData();
   }, []);
-     const handleLogout = () => {
-       Alert.alert("Logout", "Are you sure you want to logout?",
-         [
-           { text: "Cancel", style: "cancel" },
-           {
-             text: "OK", onPress: async () => {
-               try {
-                 await AsyncStorage.removeItem('@user_data');
-                 navigation.replace('Login');
-               } catch (e) { Alert.alert("Error", "Could not logout."); }
-             }
-           }
-         ]
-       );
-     };
+
+  // ✅ Load saved profile image on component mount
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      try {
+        const savedImageUri = await AsyncStorage.getItem('@profile_image_uri');
+        if (savedImageUri) {
+          setProfileImageUri(savedImageUri);
+        }
+      } catch (error) {
+        console.error('Failed to load profile image:', error);
+      }
+    };
+    loadProfileImage();
+  }, []);
+
+  const handleLogout = () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "OK", onPress: async () => {
+          try {
+            await AsyncStorage.removeItem('@user_data');
+            navigation.replace('Login');
+          } catch (e) { Alert.alert("Error", "Could not logout."); }
+        }
+      }
+    ]);
+  };
+
+  // ✅ NEW: Open image viewer
+  const openImageViewer = () => {
+    if (profileImageUri) {
+      setImageViewerVisible(true);
+      Animated.spring(imageZoom, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
+  // ✅ NEW: Close image viewer
+  const closeImageViewer = () => {
+    Animated.spring(imageZoom, {
+      toValue: 0,
+      tension: 50,
+      friction: 7,
+      useNativeDriver: true,
+    }).start(() => {
+      setImageViewerVisible(false);
+    });
+  };
+
+  // ✅ Image picker function with camera and gallery options
+  const showImagePickerOptions = () => {
+    Alert.alert(
+      "Select Profile Picture",
+      "Choose how you'd like to update your profile picture:",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "📷 Take Photo", onPress: () => pickImage('camera') },
+        { text: "🖼️ Choose from Gallery", onPress: () => pickImage('gallery') },
+      ]
+    );
+  };
+
+  // ✅ UPDATED: Image picker function with modal close
+  const pickImage = async (source) => {
+    // Close image viewer if open
+    if (imageViewerVisible) {
+      closeImageViewer();
+    }
+
+    try {
+      // Request permissions
+      if (source === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Denied', 
+            'Camera permission is required to take photos.'
+          );
+          return;
+        }
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            'Permission Denied', 
+            'Gallery permission is required to select photos.'
+          );
+          return;
+        }
+      }
+
+      let result;
+      
+      if (source === 'camera') {
+        // Launch Camera
+        result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+          base64: false,
+        });
+      } else {
+        // Launch Gallery
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+          base64: false,
+        });
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        
+        // Save image URI to AsyncStorage
+        await AsyncStorage.setItem('@profile_image_uri', imageUri);
+        setProfileImageUri(imageUri);
+        
+        Alert.alert(
+          'Success', 
+          'Profile picture updated successfully!',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Image picker error:', error);
+      Alert.alert(
+        'Error', 
+        'Failed to update profile picture. Please try again.'
+      );
+    }
+  };
+
+  // ✅ UPDATED: Remove profile image function with modal close
+  const removeProfileImage = () => {
+    Alert.alert(
+      "Remove Profile Picture",
+      "Are you sure you want to remove your profile picture?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Close image viewer if open
+              if (imageViewerVisible) {
+                closeImageViewer();
+              }
+              
+              await AsyncStorage.removeItem('@profile_image_uri');
+              setProfileImageUri(null);
+              Alert.alert('Success', 'Profile picture removed successfully!');
+            } catch (error) {
+              console.error('Error removing profile image:', error);
+              Alert.alert('Error', 'Failed to remove profile picture.');
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const ProfileOption = ({ icon, title, subtitle, onPress, iconBg }) => (
     <TouchableOpacity style={styles.modernOptionItem} onPress={onPress}>
@@ -98,24 +260,53 @@ const ProfileScreen = () => {
             <MaterialIcons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.editButton}>
-            <Feather name="edit-3" size={20} color="#ffffff"               onPress={() => navigation.navigate('PersonalInfo')} />
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => navigation.navigate('PersonalInfo')}
+          >
+            <Feather name="edit-3" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
 
-        {/* Profile Info Section with Glassmorphism Effect */}
+        {/* ✅ UPDATED: Profile Info Section with clickable image */}
         <View style={styles.profileSection}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarGlow}>
-              <View style={styles.avatarContainer}>
-                <Text style={styles.avatarInitial}>
-                  {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
-                </Text>
-              </View>
+              {profileImageUri ? (
+                // ✅ UPDATED: Make profile image clickable
+                <TouchableOpacity onPress={openImageViewer} activeOpacity={0.8}>
+                  <Image 
+                    source={{ uri: profileImageUri }} 
+                    style={styles.profileImage}
+                  />
+                </TouchableOpacity>
+              ) : (
+                // Show default avatar with initials
+                <View style={styles.avatarContainer}>
+                  <Text style={styles.avatarInitial}>
+                    {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
+                  </Text>
+                </View>
+              )}
             </View>
-            <TouchableOpacity style={styles.cameraButton}>
+            
+            {/* Camera Button with Options */}
+            <TouchableOpacity 
+              style={styles.cameraButton}
+              onPress={showImagePickerOptions}
+            >
               <Feather name="camera" size={16} color="#00D1B2" />
             </TouchableOpacity>
+
+            {/* ✅ Remove Image Button (only show if image exists) */}
+            {profileImageUri && (
+              <TouchableOpacity 
+                style={styles.removeButton}
+                onPress={removeProfileImage}
+              >
+                <Feather name="x" size={14} color="#ef4444" />
+              </TouchableOpacity>
+            )}
           </View>
 
           <Text style={styles.userName}>{userData?.name || 'John Doe'}</Text>
@@ -123,8 +314,6 @@ const ProfileScreen = () => {
           <View style={styles.userBadge}>
             <Text style={styles.userRole}>Premium Member</Text>
           </View>
-
-
         </View>
       </LinearGradient>
 
@@ -173,8 +362,6 @@ const ProfileScreen = () => {
               onPress={() => navigation.navigate('PersonalInfo')}
             />
             <View style={styles.divider} />
-
-
 
             <ProfileOption
               icon="notifications-outline"
@@ -233,6 +420,69 @@ const ProfileScreen = () => {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* ✅ NEW: Full-Screen Image Viewer Modal */}
+      <Modal
+        visible={imageViewerVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeImageViewer}
+      >
+        <View style={styles.imageViewerOverlay}>
+          {/* Close button */}
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={closeImageViewer}
+          >
+            <Feather name="x" size={28} color="#ffffff" />
+          </TouchableOpacity>
+
+          {/* Full-screen image */}
+          <Animated.View
+            style={[
+              styles.fullImageContainer,
+              { transform: [{ scale: imageZoom }] }
+            ]}
+          >
+            {profileImageUri && (
+              <Image 
+                source={{ uri: profileImageUri }} 
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            )}
+          </Animated.View>
+
+          {/* Action buttons */}
+          <View style={styles.imageViewerActions}>
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => showImagePickerOptions()}
+            >
+              <LinearGradient
+                colors={['#00D1B2', '#00a27a']}
+                style={styles.actionButtonGradient}
+              >
+                <Feather name="edit-3" size={20} color="#ffffff" />
+                <Text style={styles.actionButtonText}>Edit</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={removeProfileImage}
+            >
+              <LinearGradient
+                colors={['#ef4444', '#dc2626']}
+                style={styles.actionButtonGradient}
+              >
+                <Feather name="trash-2" size={20} color="#ffffff" />
+                <Text style={styles.actionButtonText}>Remove</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -304,6 +554,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  profileImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+  },
   avatarInitial: {
     fontSize: 36,
     color: '#00D1B2',
@@ -324,6 +579,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  removeButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
   },
   userName: {
     fontSize: 24,
@@ -494,6 +767,69 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ef4444',
     marginLeft: 8,
+  },
+
+  // ✅ NEW: Image Viewer Modal Styles
+  imageViewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  fullImageContainer: {
+    width: width * 0.9,
+    height: height * 0.6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 12,
+  },
+  imageViewerActions: {
+    position: 'absolute',
+    bottom: 60,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 20,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  actionButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    gap: 8,
+  },
+  actionButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

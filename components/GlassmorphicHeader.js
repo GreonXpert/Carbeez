@@ -8,7 +8,8 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Animated,
-  Dimensions
+  Dimensions,
+  Image
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,14 +18,16 @@ import { MaterialIcons } from '@expo/vector-icons';
 const { width } = Dimensions.get('window');
 
 const GlassmorphicHeader = ({
-  title,
-  subtitle,
+  title = 'AI Assistant', // ✅ Add default value
+  subtitle = 'AI Assistant', // ✅ Add default value
   avatar,
   onProfilePress = () => {},
   onLogoutPress = () => {},
-  onClearChat = () => {}, // ✅ Clear chat callback
-  onSaveChat = () => {},  // ✅ Save chat callback
-  onPersonalInfoPress = () => {}, // ✅ NEW: Personal Info navigation callback
+  onClearChat = () => {},
+  onSaveChat = () => {},
+  onPersonalInfoPress = () => {},
+  profileImageUri,
+  userName,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -51,64 +54,105 @@ const GlassmorphicHeader = ({
     onLogoutPress && onLogoutPress();
   };
 
-  // ✅ Clear chat handler
   const handleClearChat = () => {
     setMenuVisible(false);
     onClearChat && onClearChat();
   };
 
-  // ✅ Save chat handler
   const handleSaveChat = () => {
     setMenuVisible(false);
     onSaveChat && onSaveChat();
   };
 
-  // ✅ NEW: Personal Info handler
   const handlePersonalInfo = () => {
     onPersonalInfoPress && onPersonalInfoPress();
+  };
+
+  // ✅ UPDATED: Render avatar with proper null checks
+  const renderAvatar = () => {
+    try {
+      if (avatar) {
+        return (
+          <View style={styles.avatarContainer}>
+            {avatar}
+          </View>
+        );
+      }
+
+      if (profileImageUri) {
+        return (
+          <LinearGradient
+            colors={['#00D1B2', '#00a27a']}
+            style={styles.avatarRing}
+          >
+            <Image 
+              source={{ uri: profileImageUri }} 
+              style={styles.profileImage}
+              onError={(error) => {
+                console.log('Profile image load error:', error);
+              }}
+            />
+          </LinearGradient>
+        );
+      }
+
+      // Show default person icon with initials background
+      return (
+        <LinearGradient
+          colors={['#00D1B2', '#00a27a']}
+          style={styles.avatarRing}
+        >
+          <View style={styles.avatarCircle}>
+            {userName && userName.length > 0 ? (
+              <Text style={styles.avatarInitial}>
+                {userName.charAt(0).toUpperCase()}
+              </Text>
+            ) : (
+              <MaterialIcons name="person" size={22} color="#00D1B2" />
+            )}
+          </View>
+        </LinearGradient>
+      );
+    } catch (error) {
+      console.error('Error rendering avatar:', error);
+      // Fallback to default icon
+      return (
+        <LinearGradient
+          colors={['#00D1B2', '#00a27a']}
+          style={styles.avatarRing}
+        >
+          <View style={styles.avatarCircle}>
+            <MaterialIcons name="person" size={22} color="#00D1B2" />
+          </View>
+        </LinearGradient>
+      );
+    }
   };
 
   return (
     <>
       <View style={styles.headerOuter}>
-        {/* GLASS GRADIENT FRAME */}
         <LinearGradient
           colors={['rgba(0, 209, 178, 0.12)', 'rgba(0, 209, 178, 0.08)']}
           style={styles.gradientOutline}
         >
           <BlurView intensity={35} style={styles.blurPlate}>
             <View style={styles.innerContent}>
-              {/* ✅ NEW: Left – Clickable Person Icon */}
               <TouchableOpacity 
                 style={styles.avatarWrapper}
                 onPress={handleProfile}
                 activeOpacity={0.7}
               >
-                {avatar ? (
-                  <View style={styles.avatarContainer}>
-                    {avatar}
-                  </View>
-                ) : (
-                  <LinearGradient
-                    colors={['#00D1B2', '#00a27a']}
-                    style={styles.avatarRing}
-                  >
-                    <View style={styles.avatarCircle}>
-                      <MaterialIcons name="person" size={22} color="#00D1B2" />
-                    </View>
-                  </LinearGradient>
-                )}
+                {renderAvatar()}
               </TouchableOpacity>
 
-              {/* Middle – Title and Subtitle */}
               <View style={styles.titleBlock}>
-                <Text style={styles.title}>{title}</Text>
-                {!!subtitle && (
+                <Text style={styles.title}>{title || 'AI Assistant'}</Text>
+                {subtitle && (
                   <Text style={styles.subtitle}>{subtitle}</Text>
                 )}
               </View>
 
-              {/* Right – Action Menu */}
               <TouchableOpacity
                 style={styles.actionBtn}
                 onPress={() => setMenuVisible(true)}
@@ -126,7 +170,6 @@ const GlassmorphicHeader = ({
         </LinearGradient>
       </View>
 
-      {/* Animated Glassy Menu Modal */}
       <Modal
         visible={menuVisible}
         transparent
@@ -143,11 +186,6 @@ const GlassmorphicHeader = ({
             >
               <TouchableWithoutFeedback onPress={() => {}}>
                 <View style={styles.menuGlass}>
-                  
-
-                  <View style={styles.menuDivider} />
-
-                  {/* ✅ Clear Chat */}
                   <TouchableOpacity style={styles.menuItem} onPress={handleClearChat}>
                     <View style={styles.menuIconCircle}>
                       <MaterialIcons name="delete-sweep" size={18} color="#ef4444" />
@@ -157,7 +195,6 @@ const GlassmorphicHeader = ({
 
                   <View style={styles.menuDivider} />
 
-                  {/* ✅ Save Chat */}
                   <TouchableOpacity style={styles.menuItem} onPress={handleSaveChat}>
                     <View style={styles.menuIconCircle}>
                       <MaterialIcons name="save-alt" size={18} color="#22c55e" />
@@ -167,7 +204,12 @@ const GlassmorphicHeader = ({
 
                   <View style={styles.menuDivider} />
 
-                
+                  <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                    <View style={styles.menuIconCircle}>
+                      <MaterialIcons name="logout" size={18} color="#00D1B2" />
+                    </View>
+                    <Text style={styles.menuText}>Logout</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableWithoutFeedback>
             </Animated.View>
@@ -207,12 +249,10 @@ const styles = StyleSheet.create({
   },
   avatarWrapper: {
     marginRight: 8,
-    // ✅ NEW: Added touch feedback styles
     borderRadius: 23,
     overflow: 'hidden',
   },
   avatarContainer: {
-    // ✅ NEW: Container for custom avatar
     width: 46,
     height: 46,
     borderRadius: 23,
@@ -225,7 +265,6 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
-    // ✅ NEW: Added shadow for better visual feedback
     shadowColor: '#00D1B2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -242,6 +281,18 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'rgba(0,209,178,0.24)',
   },
+  profileImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.8)',
+  },
+  avatarInitial: {
+    fontSize: 18,
+    color: '#00D1B2',
+    fontWeight: '800',
+  },
   titleBlock: {
     flex: 1,
     alignItems: 'center',
@@ -249,16 +300,16 @@ const styles = StyleSheet.create({
     minWidth: 110,
   },
   title: {
-    fontFamily: 'Inter_700Bold',
     fontSize: 20,
+    fontWeight: '700',
     color: '#182230',
     letterSpacing: 0.6,
     textAlign: 'center',
   },
   subtitle: {
     marginTop: 2,
-    fontFamily: 'Inter_500Medium',
     fontSize: 13,
+    fontWeight: '500',
     color: '#00D1B2',
     textAlign: 'center',
     letterSpacing: 0.16,
@@ -279,7 +330,6 @@ const styles = StyleSheet.create({
     shadowRadius: 7,
     elevation: 3,
   },
-  // MODAL MENU
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(20,25,45,0.10)',
@@ -320,8 +370,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#e1f9f4',
   },
   menuText: {
-    fontFamily: 'Inter_700Bold',
     fontSize: 16,
+    fontWeight: '700',
     color: '#212427',
     letterSpacing: 0.1,
   },

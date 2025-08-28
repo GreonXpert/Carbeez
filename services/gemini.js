@@ -309,13 +309,194 @@ async function generateSpeech(text, language = 'en') {
 
 
 // ✅ Keep all existing patterns and functions
+// ✅ Keep all existing patterns and functions
 const ALLOW_PATTERNS = [
-  /\bghg\b/i, /\bgreenhouse\s+gas(es)?\b/i, /\bemission(s)?\b/i,
+  // ---- Existing (unchanged) -----------------------------------------------
+  /\bghg\b/i,
+  /\bgreenhouse\s+gas(es)?\b/i,
+  /\bemission(s)?\b/i,
   /\bcarbon\s+(footprint(ing)?|account(ing)?|inventory|emission|reduction)\b/i,
-  /\bcarbon\b/i, /\bscope\s*[1-3]\b/i, /\bscopes?\s*[1-3]\b/i,
-  /\bghg\s*protocol\b/i, /\biso\s*14064(?:-1)?\b/i,
-  /\bverification|assurance|audit(ing)?\b/i, /\btco2e\b/i, /\bco2e\b/i,
+  /\bcarbon\b/i,
+  /\bscope\s*[1-3]\b/i,
+  /\bscopes?\s*[1-3]\b/i,
+  /\bghg\s*protocol\b/i,
+  /\biso\s*14064(?:-1)?\b/i,
+  /\bverification|assurance|audit(ing)?\b/i,
+  /\btco2e\b/i,
+  /\bco2e\b/i,
+
+  // ---- Core GHG & gases ----------------------------------------------------
+  /\b(?:co2|co₂|ch4|n2o|sf6|nf3|hfc-?\d{2,3}[a-z]?|pfc(?:s)?|cf4|c2f6|c3f8|c4f10|c5f12|c6f14)\b/i,
+  /\bglobal\s*warming\s*potential\b/i,
+  /\bgwp(?:\s*(?:100|20|ar[4-6]))?\b/i,
+  /\bfugitive\s+emissions?\b/i,
+  /\bbiogenic\s+co2\b/i,
+
+  // ---- Units / notations ---------------------------------------------------
+  /\b(?:t|kt|mt|mmt)\s*co(?:2|₂)(?:e|eq)\b/i,
+  /\btonnes?\s*co(?:2|₂)(?:e|eq)\b/i,
+
+  // ---- Standards & methodologies ------------------------------------------
+  /\biso\s*14064(?:-1|-2|-3)?\b/i,
+  /\biso\s*14067\b/i,
+  /\biso\s*14040\b/i,
+  /\biso\s*14044\b/i,
+  /\biso\s*14046\b/i,
+  /\biso\s*14068\b/i,
+  /\biso\s*14001\b/i,
+  /\biso\s*50001\b/i,
+  /\bpas\s*2050\b/i,
+  /\bpas\s*2060\b/i,
+  /\bghg\s*protocol\s*(?:corporate|product|project|scope\s*2|land\s*sector|removals)\s*(?:standard|guidance)?\b/i,
+  /\bipcc\b/i,
+  /\bdefra\b/i,
+  /\bepa\b/i,
+  /\biea\b/i,
+  /\b(e|grid|e-grid)\b/i, // eGRID references
+
+  // ---- Scope 1/2 activity terms -------------------------------------------
+  /\b(?:stationary|mobile)\s+combustion\b/i,
+  /\bprocess\s+emissions?\b/i,
+  /\brefrigerants?\b/i,
+  /\b(?:leak|leakage)\s*(?:rate|testing|emissions?)?\b/i,
+  /\belectricity|steam|heat|cooling\b/i,
+  /\bmarket-?based\b/i,
+  /\blocation-?based\b/i,
+  /\bgrid\s+emission\s+factor\b/i,
+
+  // ---- Scope 3 category names ---------------------------------------------
+  /\bpurchased\s+goods?\s+and\s+services\b/i,
+  /\bcapital\s+goods\b/i,
+  /\bfuel-?\s*and\s*energy-?\s*related\s*activities\b/i,
+  /\bupstream\s+transportation\s+and\s+distribution\b/i,
+  /\bwaste\s+generated\s+in\s+operations\b/i,
+  /\bbusiness\s+travel\b/i,
+  /\bemployee\s+commuting\b/i,
+  /\bupstream\s+leased\s+assets\b/i,
+  /\bdownstream\s+transportation\s+and\s+distribution\b/i,
+  /\bprocessing\s+of\s+sold\s+products\b/i,
+  /\buse\s+of\s+sold\s+products\b/i,
+  /\bend\s+of\s+life\s+treatment\s+of\s+sold\s+products\b/i,
+  /\bdownstream\s+leased\s+assets\b/i,
+  /\bfranchises\b/i,
+  /\binvestments\b/i,
+
+  // ---- Data & calculation terms -------------------------------------------
+  /\bemission\s*factors?\b/i,
+  /\bactivity\s*data\b/i,
+  /\bemissions?\s+intensity\b/i,
+  /\bmateriality\s+(?:threshold|assessment)\b/i,
+  /\bdouble\s+materiality\b/i,
+  /\buncertainty\s+(?:analysis|assessment)?\b/i,
+  /\b(?:mrv|monitoring,\s*reporting\s*and\s*verification)\b/i,
+  /\bqa\/qc\b/i,
+  /\bbase\s*year\b/i,
+  /\bbaseline\s+scenario\b/i,
+
+  // ---- Energy & renewables -------------------------------------------------
+  /\brenewable\s+(?:energy|electricity)\b/i,
+  /\bppa\b/i,
+  /\bpower\s*purchase\s*agreements?\b/i,
+  /\benergy\s+attribute\s+certificates?\b/i,
+  /\beacs?\b/i,
+  /\brecs?\b/i,
+  /\birecs?\b/i,
+  /\bguarantees?\s+of\s+origin\b/i,
+  /\bgos?\b/i,
+
+  // ---- Targets & strategies -----------------------------------------------
+  /\bsbti\b/i,
+  /\bscience-?based\s+targets?\b/i,
+  /\bnet\s*zero\b/i,
+  /\bdecarboni[sz]ation\b/i,
+  /\babatement\b/i,
+  /\bresidual\s+emissions?\b/i,
+  /\boffset(?:ting)?\b/i,
+  /\bremoval(?:s)?\b/i,
+  /\binsetting\b/i,
+  /\binternal\s+carbon\s+price\b/i,
+  /\b1\.5\s*°?c\b/i,
+
+  // ---- Carbon markets & programs ------------------------------------------
+  /\bcarbon\s+(?:credit|credits|offsets?|allowances?)\b/i,
+  /\bverra\b/i,
+  /\bverified\s*carbon\s*standard\b/i,
+  /\bvcs\b/i,
+  /\bgold\s*standard\b/i,
+  /\bamerican\s*carbon\s*registry\b/i,
+  /\bclimate\s*action\s*reserve\b/i,
+  /\bcdm\b/i,
+  /\barticle\s*6\b/i,
+  /\bredd\+?\b/i,
+  /\bafolu\b/i,
+  /\blulucf\b/i,
+  /\bifm\b/i,
+  /\barr\b/i,
+  /\bpermanence\b/i,
+  /\badditionality\b/i,
+  /\bbuffer\s+pool\b/i,
+
+  // ---- Reporting & disclosure frameworks -----------------------------------
+  /\besg\b/i,
+  /\benvironmental\s*,?\s*social\s*,?\s*governance\b/i,
+  /\btcfd\b/i,
+  /\btnfd\b/i,
+  /\bissb\b/i,
+  /\bifrs\s*s[12]\b/i,
+  /\bsasb\b/i,
+  /\bgri(?:\s*standards)?\b/i,
+  /\bcdp\b/i,
+  /\bcsrd\b/i,
+  /\besrs\b/i,
+  /\bsecr\b/i,
+  /\bbrsr(?:\s*core)?\b/i,
+  /\bsebi\b/i,
+  /\bpcaf\b/i,
+  /\bfinanced\s+emissions\b/i,
+
+  // ---- Policy, pricing & schemes ------------------------------------------
+  /\bcarbon\s+pricing\b/i,
+  /\bcarbon\s+tax\b/i,
+  /\bemissions?\s+trading\s+scheme\b/i,
+  /\bets\b/i,
+  /\beu\s*ets\b/i,
+  /\buk\s*ets\b/i,
+  /\bcbam\b/i,
+  /\bndcs?\b/i,
+  /\bbee\s+pat\b/i,
+  /\bperform,\s*achieve\s*and\s*trade\b/i,
+
+  // ---- AFOLU / Forestry measurement ---------------------------------------
+  /\bforest\s+reference\s+level\b/i,
+  /\bfrl\b/i,
+  /\ballometric\b/i,
+  /\babove-?\s*ground\s+biomass\b/i,
+  /\bagb\b/i,
+  /\bbelow-?\s*ground\s+biomass\b/i,
+  /\bbgb\b/i,
+  /\broot-?\s*to-?\s*shoot\s+ratio\b/i,
+  /\brsr\b/i,
+  /\bcarbon\s+stock\b/i,
+
+  // ---- Lifecycle & product footprinting -----------------------------------
+  /\blca\b/i,
+  /\blife\s*cycle\s*assessment\b/i,
+  /\bproduct\s+carbon\s+footprint\b/i,
+  /\bpcf\b/i,
+  /\bcradle-?\s*to-?\s*(?:gate|grave|site)\b/i,
+  /\bwell-?\s*to-?\s*wheel\b/i,
+  /\bgate-?\s*to-?\s*gate\b/i,
+
+  // ---- Waste, water & pollutants ------------------------------------------
+  /\bwaste\s+(?:to\s*energy|incineration|landfill|composting|anaerobic\s+digestion)\b/i,
+  /\bmethane\s+capture\b/i,
+  /\bwater\s+footprint\b/i,
+  /\bno[x]?\b/i,
+  /\bsox\b/i,
+  /\bso2\b/i,
+  /\bpm(?:2\.5|10)\b/i
 ];
+
 
 const SMALL_TALK_PATTERNS = [
   /\b(hi|hello|hey|yo)\b/i,
